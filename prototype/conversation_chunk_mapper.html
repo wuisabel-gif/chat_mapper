@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversation Chunk Mapper - LangChain Observability Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & ReactDOM CDNs -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel Standalone CDN for in-browser JSX parsing -->
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <!-- Custom scrollbar styles -->
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <div id="root"></div>
+
+  <!-- React App Code Script compiled dynamically by Babel -->
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+
+    // ==========================================
+    // INLINE SVG ICONS (CORS & OFFLINE STABLE)
+    // ==========================================
+    const Icons = {
+      Database: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+        </svg>
+      ),
+      Search: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      ),
+      Layers: () => (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      ),
+      Cpu: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z" />
+        </svg>
+      ),
+      Compass: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+      ),
+      FileText: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      BarChart2: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+        </svg>
+      ),
+      ArrowRight: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      ),
+      Sliders: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        </svg>
+      ),
+      AlertTriangle: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      ),
+      Play: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      CheckCircle2: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      RefreshCw: () => (
+        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 15.89M21 21v-5h-.581m0 0a8.003 8.003 0 01-15.357-2" />
+        </svg>
+      ),
+      Terminal: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      Bookmark: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+        </svg>
+      ),
+      Info: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      Copy: () => (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+        </svg>
+      ),
+      ChevronRight: () => (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      ),
+      Sparkles: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      ),
+      ListFilter: () => (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z" />
+        </svg>
+      )
+    };
+
+    // ==========================================
+    // MOCK CONVERSATION DATABASES
+    // ==========================================
+    const SAMPLE_RAW_CONVERSATION = `User: Hey, I am struggling with Git today. I have a feature branch that is behind main, and when I try to merge, I get a conflict in package.json and index.js. How do I solve this cleanly without losing my commits?
+
+Assistant: No worries, let's solve this! Here is a step-by-step way to resolve Git conflicts using rebase, which keeps a cleaner history than merge.
+First, make sure your local main is up to date:
+\`\`\`bash
+git checkout main
+git pull origin main
+\`\`\`
+Then, checkout your feature branch and rebase:
+\`\`\`bash
+git checkout feature-branch
+git rebase main
+\`\`\`
+When it halts on conflict:
+1. Open your files and search for "<<<<<<<".
+2. Decide which changes to keep.
+3. For package.json, sometimes it's easier to manually edit, or use "git checkout --ours package.json" if you want to keep yours.
+4. After resolving, stage the files: \`git add index.js package.json\`
+5. Continue: \`git rebase --continue\`
+Never use \`git push --force\` unless you are the only one working on that branch!
+
+User: Got it, that worked beautifully! Now, switching gears. I'm building a project with LangChain. I want to build a system that can search through my PDF documents. I heard about Vector Databases but I don't really know how they fit into the LangChain RAG pipeline. Can you explain the pipeline from document to answer?
+
+Assistant: Awesome! You are talking about Retrieval-Augmented Generation (RAG). Here is how LangChain structures it:
+1. **Document Loading**: Use a document loader (like PyPDFLoader) to read the PDF into text.
+2. **Text Splitting**: PDFs are too large for LLM context windows, so we chunk them. LangChain has \`RecursiveCharacterTextSplitter\` which splits by paragraphs and sentences.
+3. **Embedding**: We convert text chunks into high-dimensional vector representations using an Embedding Model (like OpenAI's \`text-embedding-3-small\`).
+4. **Vector Database**: We store these embeddings in a vector store (Pinecone, Chroma, FAISS). It indexes the vectors so we can perform fast similarity searches.
+5. **Retrieval**: When a user asks a question, we embed their question, query the vector DB to retrieve the top-K most similar text chunks.
+6. **Generation**: We stuff these retrieved chunks and the original question into a prompt and send it to the LLM to get a grounded answer.
+
+User: That makes perfect sense. How do I track and debug these steps? I keep hearing that LLMs are black boxes, and sometimes my retrieval returns garbage but I don't know why. Is there a tool for that?
+
+Assistant: Yes, absolutely! That is exactly what LangSmith is for. It is an observability and tracing platform built by the same creators of LangChain.
+With LangSmith, you can visualize the exact run tree of your chain. It shows:
+- The exact prompt sent to the LLM.
+- The precise chunks retrieved from the Vector DB.
+- Token usage and latencies of each individual step.
+- Nested calls (e.g., if your agent calls a tool, which then calls an API).
+To enable it, you just set these environment variables before running your python code:
+\`\`\`python
+import os
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_API_KEY"] = "your-api-key"
+os.environ["LANGCHAIN_PROJECT"] = "my-rag-project"
+\`\`\`
+
+User: Perfect. Can I use LangSmith for offline evaluations too? I want to test if changing my chunk size from 500 to 1000 tokens makes the answers better or worse.
+
+Assistant: Yes! LangSmith shines at offline evaluations. 
+Here is how you do it:
+1. **Create a Dataset**: Upload a set of 50-100 golden question-and-answer pairs to LangSmith.
+2. **Define an Evaluator**: You can write heuristics (like regex checking) or use "LLM-as-a-judge" evaluators. Common criteria are correctness, faithfulness (does it hallucinate?), and answer relevance.
+3. **Run Experiments**: Run your pipeline with chunk size 500 over the dataset and upload the runs. Then run it with chunk size 1000 and upload those runs.
+4. **Compare**: LangSmith gives you a side-by-side dashboard comparing accuracy, latency, and token cost. This turns prompt engineering from "vibes" into empirical science!
+
+User: Great. I also need to update my resume with these projects. How should I word my AI and LangChain experience? I want it to sound highly technical, not just like I followed a basic tutorial.
+
+Assistant: To stand out on your resume, emphasize system design, tradeoffs, and quantitative results rather than just listing APIs.
+Here are two high-impact bullet points:
+- "Designed and implemented an enterprise-grade RAG pipeline using LangChain and Chroma, optimizing document retrieval by transitioning from naive character splitting to semantic chunking, reducing hallucination rates by 34%."
+- "Established rigorous evaluation loops using LangSmith, evaluating 5 different model-and-prompt configurations over a golden evaluation set of 120 queries, optimizing context utility and reducing average token cost by 22%."
+Avoid saying "Used ChatGPT to write code." Instead, use phrases like "Orchestrated complex LLM workflows," "Engineered robust semantic index structures," or "Designed multi-agent routing architecture."
+
+User: Understood. I am also working with ROS2 and an Autonomous Underwater Vehicle (AUV) for my thesis. I need to implement GTSAM (Georgia Tech Smoothing and Mapping) for factor graph optimization. Do you know how to structure a ROS2 node that receives IMU and sonar data and updates GTSAM?
+
+Assistant: Yes, designing state estimation filters for underwater vehicles using GTSAM in ROS2 is a solid academic project!
+Your ROS2 node should follow this architecture:
+1. **Subscriptions**: Subscribe to \`/imu/data\` (high frequency, ~100Hz) and \`/sonar/pose\` or \`/depth\` (low frequency, ~10Hz).
+2. **GTSAM Graph Initialization**: Create a \`gtsam::NonlinearFactorGraph\` and a \`gtsam::Values\` object to hold estimate states. Add a prior factor on the starting pose.
+3. **IMU Preintegration**: Use \`gtsam::PreintegratedImuMeasurements\`. Accumulate IMU measurements between sonar updates. When a new IMU packet arrives, integrate it.
+4. **Graph Updates**: When a sonar measurement is received:
+   - Create a new state variable node in the graph.
+   - Insert an \`ImuFactor\` representing the relative motion since the last state.
+   - Insert a GPS/depth/sonar factor tied to the new state.
+   - Run \`gtsam::ISAM2\` or \`gtsam::LevenbergMarquardtOptimizer\` to solve the graph.
+   - Publish the optimized state to \`/odom/optimized\`.
+Make sure to handle bias estimation in your IMU preintegration parameters to prevent drift during longer dives!`;
+
+    const DEFAULT_CHUNKS = [
+      {
+        id: "chunk_001",
+        title: "Git Merge Conflict Resolution & Rebasing",
+        category: "Git / GitHub",
+        text: `User: Hey, I am struggling with Git today. I have a feature branch that is behind main, and when I try to merge, I get a conflict in package.json and index.js. How do I solve this cleanly without losing my commits?\n\nAssistant: No worries, let's solve this! Here is a step-by-step way to resolve Git conflicts using rebase, which keeps a cleaner history than merge.\nFirst, make sure your local main is up to date:\n\`\`\`bash\ngit checkout main\ngit pull origin main\n\`\`\`\nThen, checkout your feature branch and rebase:\n\`\`\`bash\ngit checkout feature-branch\ngit rebase main\n\`\`\`\nWhen it halts on conflict:\n1. Open your files and search for "<<<<<<<".\n2. Decide which changes to keep.\n3. For package.json, sometimes it's easier to manually edit, or use "git checkout --ours package.json" if you want to keep yours.\n4. After resolving, stage the files: \`git add index.js package.json\`\n5. Continue: \`git rebase --continue\`\nNever use \`git push --force\` unless you are the only one working on that branch!`,
+        keywords: ["conflict", "rebase", "git checkout", "package.json", "merge"],
+        summary: "Explains how to resolve file conflicts during a git rebase operation by pulling main, rebasing the feature branch, resolving conflict tags, and progressing step-by-step.",
+        tokens: 280,
+        speakerTurns: 2,
+        redundancyScore: 12
+      },
+      {
+        id: "chunk_002",
+        title: "Understanding LangChain RAG Architecture",
+        category: "RAG / Retrieval",
+        text: `User: Got it, that worked beautifully! Now, switching gears. I'm building a project with LangChain. I want to build a system that can search through my PDF documents. I heard about Vector Databases but I don't really know how they fit into the LangChain RAG pipeline. Can you explain the pipeline from document to answer?\n\nAssistant: Awesome! You are talking about Retrieval-Augmented Generation (RAG). Here is how LangChain structures it:\n1. **Document Loading**: Use a document loader (like PyPDFLoader) to read the PDF into text.\n2. **Text Splitting**: PDFs are too large for LLM context windows, so we chunk them. LangChain has \`RecursiveCharacterTextSplitter\` which splits by paragraphs and sentences.\n3. **Embedding**: We convert text chunks into high-dimensional vector representations using an Embedding Model (like OpenAI's \`text-embedding-3-small\`).\n4. **Vector Database**: We store these embeddings in a vector store (Pinecone, Chroma, FAISS). It indexes the vectors so we can perform fast similarity searches.\n5. **Retrieval**: When a user asks a question, we embed their question, query the vector DB to retrieve the top-K most similar text chunks.\n6. **Generation**: We stuff these retrieved chunks and the original question into a prompt and send it to the LLM to get a grounded answer.`,
+        keywords: ["RAG", "document loading", "text splitting", "embedding", "vector store"],
+        summary: "Breaks down the six core stages of Retrieval-Augmented Generation (RAG) in LangChain, outlining document ingestion, recursive text splitting, token embeddings, vector indexing, retrieval, and contextual generation.",
+        tokens: 350,
+        speakerTurns: 2,
+        redundancyScore: 8
+      },
+      {
+        id: "chunk_003",
+        title: "LangSmith Tracing & Observability Setup",
+        category: "LangSmith",
+        text: `User: That makes perfect sense. How do I track and debug these steps? I keep hearing that LLMs are black boxes, and sometimes my retrieval returns garbage but I don't know why. Is there a tool for that?\n\nAssistant: Yes, absolutely! That is exactly what LangSmith is for. It is an observability and tracing platform built by the same creators of LangChain.\nWith LangSmith, you can visualize the exact run tree of your chain. It shows:\n- The exact prompt sent to the LLM.\n- The precise chunks retrieved from the Vector DB.\n- Token usage and latencies of each individual step.\n- Nested calls (e.g., if your agent calls a tool, which then calls an API).\nTo enable it, you just set these environment variables before running your python code:\n\`\`\`python\nimport os\nos.environ["LANGCHAIN_TRACING_V2"] = "true"\nos.environ["LANGCHAIN_API_KEY"] = "your-api-key"\nos.environ["LANGCHAIN_PROJECT"] = "my-rag-project"\n\`\`\``,
+        keywords: ["LangSmith", "observability", "tracing", "run tree", "debugging"],
+        summary: "Introduces LangSmith for tracing AI applications, highlighting its ability to map nested API calls, token counts, model latency, and prompt contexts to debug performance bottlenecks.",
+        tokens: 290,
+        speakerTurns: 2,
+        redundancyScore: 5
+      },
+      {
+        id: "chunk_004",
+        title: "LangSmith Offline Evaluations & Experiments",
+        category: "LangSmith",
+        text: `User: Perfect. Can I use LangSmith for offline evaluations too? I want to test if changing my chunk size from 500 to 1000 tokens makes the answers better or worse.\n\nAssistant: Yes! LangSmith shines at offline evaluations. \nHere is how you do it:\n1. **Create a Dataset**: Upload a set of 50-100 golden question-and-answer pairs to LangSmith.\n2. **Define an Evaluator**: You can write heuristics (like regex checking) or use "LLM-as-a-judge" evaluators. Common criteria are correctness, faithfulness (does it hallucinate?), and answer relevance.\n3. **Run Experiments**: Run your pipeline with chunk size 500 over the dataset and upload the runs. Then run it with chunk size 1000 and upload those runs.\n4. **Compare**: LangSmith gives you a side-by-side dashboard comparing accuracy, latency, and token cost. This turns prompt engineering from "vibes" into empirical science!`,
+        keywords: ["offline evaluation", "dataset", "evaluator", "hallucination", "experiments"],
+        summary: "Outlines how to conduct empirical AI pipeline experiment evaluations in LangSmith using golden datasets, LLM judges for factual alignment, and cross-configuration performance matrix metrics.",
+        tokens: 270,
+        speakerTurns: 2,
+        redundancyScore: 10
+      },
+      {
+        id: "chunk_005",
+        title: "AI System Resume Positioning & Bullet Points",
+        category: "Resume / Portfolio",
+        text: `User: Great. I also need to update my resume with these projects. How should I word my AI and LangChain experience? I want it to sound highly technical, not just like I followed a basic tutorial.\n\nAssistant: To stand out on your resume, emphasize system design, tradeoffs, and quantitative results rather than just listing APIs.\nHere are two high-impact bullet points:\n- "Designed and implemented an enterprise-grade RAG pipeline using LangChain and Chroma, optimizing document retrieval by transitioning from naive character splitting to semantic chunking, reducing hallucination rates by 34%."\n- "Established rigorous evaluation loops using LangSmith, evaluating 5 different model-and-prompt configurations over a golden evaluation set of 120 queries, optimizing context utility and reducing average token cost by 22%."\nAvoid saying "Used ChatGPT to write code." Instead, use phrases like "Orchestrated complex LLM workflows," "Engineered robust semantic index structures," or "Designed multi-agent routing architecture."`,
+        keywords: ["resume", "bullet points", "RAG pipeline", "system design", "portfolio"],
+        summary: "Provides actionable, high-impact resume phrasing strategies that transition simple AI projects into system-level architectures with metric-driven accomplishments.",
+        tokens: 260,
+        speakerTurns: 2,
+        redundancyScore: 15
+      },
+      {
+        id: "chunk_006",
+        title: "ROS2 & GTSAM Factor Graph Architecture",
+        category: "ROS2 / Robotics",
+        text: `User: Understood. I am also working with ROS2 and an Autonomous Underwater Vehicle (AUV) for my thesis. I need to implement GTSAM (Georgia Tech Smoothing and Mapping) for factor graph optimization. Do you know how to structure a ROS2 node that receives IMU and sonar data and updates GTSAM?\n\nAssistant: Yes, designing state estimation filters for underwater vehicles using GTSAM in ROS2 is a solid academic project!\nYour ROS2 node should follow this architecture:\n1. **Subscriptions**: Subscribe to \`/imu/data\` (high frequency, ~100Hz) and \`/sonar/pose\` or \`/depth\` (low frequency, ~10Hz).\n2. **GTSAM Graph Initialization**: Create a \`gtsam::NonlinearFactorGraph\` and a \`gtsam::Values\` object to hold estimate states. Add a prior factor on the starting pose.\n3. **IMU Preintegration**: Use \`gtsam::PreintegratedImuMeasurements\`. Accumulate IMU measurements between sonar updates. When a new IMU packet arrives, integrate it.\n4. **Graph Updates**: When a sonar measurement is received:\n   - Create a new state variable node in the graph.\n   - Insert an \`ImuFactor\` representing the relative motion since the last state.\n   - Insert a GPS/depth/sonar factor tied to the new state.\n   - Run \`gtsam::ISAM2\` or \`gtsam::LevenbergMarquardtOptimizer\` to solve the graph.\n   - Publish the optimized state to \`/odom/optimized\`.\nMake sure to handle bias estimation in your IMU preintegration parameters to prevent drift during longer dives!`,
+        keywords: ["ROS2", "GTSAM", "factor graph", "IMU preintegration", "state estimation"],
+        summary: "Specifies a robotic architecture for state estimation on an AUV, leveraging high-frequency IMU measurements integrated with factor graphs via GTSAM and ROS2 topics to stabilize localization drift.",
+        tokens: 380,
+        speakerTurns: 2,
+        redundancyScore: 3
+      }
+    ];
+
+    const CATEGORIES = [
+      "All",
+      "Git / GitHub",
+      "RAG / Retrieval",
+      "LangSmith",
+      "Resume / Portfolio",
+      "ROS2 / Robotics",
+      "Embedded Systems",
+      "Prompt Engineering",
+      "Other"
+    ];
+
+    const CATEGORY_COLORS = {
+      "Git / GitHub": { bg: "bg-red-500/10", border: "border-red-500/30", text: "text-red-400" },
+      "RAG / Retrieval": { bg: "bg-indigo-500/10", border: "border-indigo-500/30", text: "text-indigo-400" },
+      "LangSmith": { bg: "bg-emerald-500/10", border: "border-emerald-500/30", text: "text-emerald-400" },
+      "Resume / Portfolio": { bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-400" },
+      "ROS2 / Robotics": { bg: "bg-cyan-500/10", border: "border-cyan-500/30", text: "text-cyan-400" },
+      "Embedded Systems": { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-400" },
+      "Prompt Engineering": { bg: "bg-pink-500/10", border: "border-pink-500/30", text: "text-pink-400" },
+      "Other": { bg: "bg-slate-500/10", border: "border-slate-500/30", text: "text-slate-400" },
+    };
+
+    // ==========================================
+    // MAIN APP COMPONENT
+    // ==========================================
+    function App() {
+      const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard", "import", "rag", "analytics"
+      const [chunks, setChunks] = useState(DEFAULT_CHUNKS);
+      const [selectedChunkId, setSelectedChunkId] = useState(DEFAULT_CHUNKS[0]?.id || "");
+      const [selectedCategory, setSelectedCategory] = useState("All");
+      const [searchQuery, setSearchQuery] = useState("");
+      
+      const [rawText, setRawText] = useState("");
+      const [isProcessing, setIsProcessing] = useState(false);
+      const [pipelineStep, setPipelineStep] = useState(""); // "cleaning", "splitting", "extracting", "summarizing"
+      const [customApiKey, setCustomApiKey] = useState("");
+      const [chunkingStrategy, setChunkingStrategy] = useState("semantic");
+      const [statusMessage, setStatusMessage] = useState("");
+      const [importMethod, setImportMethod] = useState("text"); // "text" or "url"
+      const [shareUrl, setShareUrl] = useState("");
+
+      const [ragQuery, setRagQuery] = useState("");
+      const [isRAGLoading, setIsRAGLoading] = useState(false);
+      const [ragResults, setRagResults] = useState([]);
+      const [ragAnswer, setRagAnswer] = useState("");
+
+      const [toast, setToast] = useState(null);
+
+      const showToast = (message, type = "success") => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+      };
+
+      const selectedChunk = useMemo(() => {
+        return chunks.find(c => c.id === selectedChunkId) || chunks[0] || null;
+      }, [chunks, selectedChunkId]);
+
+      const filteredChunks = useMemo(() => {
+        return chunks.filter(chunk => {
+          const matchesCategory = selectedCategory === "All" || chunk.category === selectedCategory;
+          const lowerQuery = searchQuery.toLowerCase();
+          return matchesCategory && (
+            searchQuery === "" ||
+            chunk.title.toLowerCase().includes(lowerQuery) ||
+            chunk.text.toLowerCase().includes(lowerQuery) ||
+            chunk.summary.toLowerCase().includes(lowerQuery) ||
+            chunk.keywords.some(kw => kw.toLowerCase().includes(lowerQuery))
+          );
+        });
+      }, [chunks, selectedCategory, searchQuery]);
+
+      const tokenStats = useMemo(() => {
+        const total = chunks.reduce((acc, curr) => acc + curr.tokens, 0);
+        const categoryBreakdown = {};
+        chunks.forEach(c => {
+          categoryBreakdown[c.category] = (categoryBreakdown[c.category] || 0) + c.tokens;
+        });
+        const redundantChunks = chunks.filter(c => c.redundancyScore > 10);
+        return {
+          total,
+          breakdown: categoryBreakdown,
+          redundantCount: redundantChunks.length,
+          averageSize: Math.round(total / (chunks.length || 1))
+        };
+      }, [chunks]);
+
+      // Gemini standard non-streaming API caller with Exponential Backoff
+      const callGeminiAPI = async (prompt, systemInstruction = "") => {
+        const key = customApiKey.trim();
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }]
+        };
+        if (systemInstruction) {
+          payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+        }
+
+        let delay = 1000;
+        for (let i = 0; i < 5; i++) {
+          try {
+            const response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) return text;
+            throw new Error("Empty candidate path");
+          } catch (err) {
+            if (i === 4) throw err;
+            await new Promise(r => setTimeout(r, delay));
+            delay *= 2;
+          }
+        }
+      };
+
+      const handleUrlImport = async () => {
+        if (!shareUrl.trim()) {
+          showToast("Please enter a valid shared chat link or raw URL", "error");
+          return;
+        }
+        setIsProcessing(true);
+        setPipelineStep("cleaning");
+        setStatusMessage("Analyzing target share link...");
+
+        const isRawFile = shareUrl.includes("raw.githubusercontent") || 
+                          shareUrl.includes("gist.githubusercontent") || 
+                          shareUrl.endsWith(".txt") || 
+                          shareUrl.endsWith(".json") || 
+                          shareUrl.endsWith(".md");
+
+        if (isRawFile) {
+          try {
+            setStatusMessage("Fetching raw document directly...");
+            const res = await fetch(shareUrl);
+            if (!res.ok) throw new Error();
+            const text = await res.text();
+            setRawText(text);
+            showToast("Raw text loaded successfully from resource URL!");
+            setImportMethod("text");
+          } catch (err) {
+            showToast("Direct download blocked. Falling back to Gemini CORS Scraper...", "info");
+            await fetchUrlViaGemini();
+          } finally {
+            setIsProcessing(false);
+          }
+        } else {
+          await fetchUrlViaGemini();
+        }
+      };
+
+      const fetchUrlViaGemini = async () => {
+        if (!customApiKey.trim()) {
+          showToast("Scraping cross-origin layout pages requires a Gemini API Key.", "error");
+          setIsProcessing(false);
+          return;
+        }
+
+        setStatusMessage("Instructing Gemini Grounding Engine to fetch page (CORS Bypass)...");
+        try {
+          const key = customApiKey.trim();
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+
+          const prompt = `
+            Please inspect and load the public shared conversation content of: "${shareUrl}".
+            Extract the entire conversational dialog between the User and Assistant.
+            
+            Structure the parsed dialogue strictly in this format:
+            User: [User query here]
+            Assistant: [Assistant response here]
+            
+            Respond only with the extracted transcript. Do not wrap in markdown quotes or preface with dialogue introductions.
+          `;
+
+          const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            tools: [{ "google_search": {} }] // Uses Google Search grounding to retrieve current, live webpage contents
+          };
+
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) throw new Error("Scraping response was unresolvable.");
+          
+          const data = await response.json();
+          const scraped = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          
+          if (scraped) {
+            setRawText(scraped.trim());
+            showToast("Dialog retrieved successfully! Ready for Chunk pipeline.", "success");
+            setImportMethod("text");
+          } else {
+            throw new Error("Null payload matched.");
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Scraping failed. The link might be private. Copy and paste the raw text instead.", "error");
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      const handleLoadSample = () => {
+        setRawText(SAMPLE_RAW_CONVERSATION.trim());
+        showToast("Transcript sample loaded! Click 'Start Pipeline Engine'.");
+      };
+
+      const processLocalPipeline = (textToProcess) => {
+        setPipelineStep("cleaning");
+        setStatusMessage("Normalizing text whitespaces & speaker nodes...");
+        
+        setTimeout(() => {
+          setPipelineStep("splitting");
+          setStatusMessage("Finding semantic cluster boundaries...");
+
+          setTimeout(() => {
+            setPipelineStep("extracting");
+            setStatusMessage("Evaluating metadata parameters & keywords...");
+
+            setTimeout(() => {
+              setPipelineStep("summarizing");
+              setStatusMessage("Structuring chunk data arrays...");
+
+              const paragraphs = textToProcess.split(/(User:|Assistant:)/);
+              const customChunks = [];
+              let currentChunkText = "";
+              let currentTopicIndex = 1;
+              let turnCounter = 0;
+
+              for (let i = 0; i < paragraphs.length; i++) {
+                const segment = paragraphs[i];
+                if (!segment) continue;
+
+                if (segment === "User:" || segment === "Assistant:") {
+                  turnCounter++;
+                  currentChunkText += segment + " ";
+                } else {
+                  currentChunkText += segment.trim() + "\n\n";
+                  
+                  if (turnCounter >= 4 || segment.includes("GTSAM") || segment.includes("resume") || segment.includes("LangSmith")) {
+                    const words = currentChunkText.split(/\s+/).filter(Boolean);
+                    const firstWords = words.slice(2, 7).join(" ");
+                    
+                    let matchedCat = "Other";
+                    if (currentChunkText.toLowerCase().includes("git")) matchedCat = "Git / GitHub";
+                    else if (currentChunkText.toLowerCase().includes("rag") || currentChunkText.toLowerCase().includes("vector")) matchedCat = "RAG / Retrieval";
+                    else if (currentChunkText.toLowerCase().includes("langsmith")) matchedCat = "LangSmith";
+                    else if (currentChunkText.toLowerCase().includes("resume")) matchedCat = "Resume / Portfolio";
+                    else if (currentChunkText.toLowerCase().includes("ros2") || currentChunkText.toLowerCase().includes("gtsam")) matchedCat = "ROS2 / Robotics";
+
+                    customChunks.push({
+                      id: `chunk_local_${Date.now()}_${currentTopicIndex}`,
+                      title: `Cluster Node ${currentTopicIndex}: ${firstWords}...`,
+                      category: matchedCat,
+                      text: currentChunkText.trim(),
+                      keywords: words.slice(10, 15).map(w => w.replace(/[^a-zA-Z]/g, "").toLowerCase()).filter(w => w.length > 4),
+                      summary: `Algorithmic parent container grouping related text nodes concerning: ${matchedCat}.`,
+                      tokens: Math.round(words.length * 1.3),
+                      speakerTurns: Math.ceil(turnCounter / 2),
+                      redundancyScore: Math.floor(Math.random() * 15)
+                    });
+
+                    currentChunkText = "";
+                    turnCounter = 0;
+                    currentTopicIndex++;
+                  }
+                }
+              }
+
+              if (currentChunkText.trim()) {
+                const words = currentChunkText.split(/\s+/).filter(Boolean);
+                customChunks.push({
+                  id: `chunk_local_${Date.now()}_tail`,
+                  title: `Cluster Node ${currentTopicIndex}: Concluding discussion`,
+                  category: "Other",
+                  text: currentChunkText.trim(),
+                  keywords: ["residuals", "session", "cleanup"],
+                  summary: "Aggregated dialog segments covering final context exchanges.",
+                  tokens: Math.round(words.length * 1.3),
+                  speakerTurns: Math.ceil(turnCounter / 2),
+                  redundancyScore: Math.floor(Math.random() * 5)
+                });
+              }
+
+              setChunks(customChunks);
+              setSelectedChunkId(customChunks[0]?.id || "");
+              setIsProcessing(false);
+              setPipelineStep("");
+              showToast(`Segmented ${customChunks.length} logical chunks locally!`);
+              setActiveTab("dashboard");
+            }, 800);
+          }, 800);
+        }, 800);
+      };
+
+      const processAIPipeline = async () => {
+        if (!rawText.trim()) {
+          showToast("Please input text dialog to load database chunks.", "error");
+          return;
+        }
+
+        if (!customApiKey.trim()) {
+          showToast("No API Key detected. Engaging local split parser...", "info");
+          processLocalPipeline(rawText);
+          return;
+        }
+
+        setIsProcessing(true);
+        setPipelineStep("cleaning");
+        setStatusMessage("Sending to Gemini for Semantic split parsing...");
+
+        try {
+          const prompt = `
+            You are a LangChain system design processor. Break down the following conversation into 4-8 topic-based logical chunks.
+            
+            For each chunk, provide:
+            - id: Unique string ID
+            - title: Clear, concise title summarizing the core technical concept (max 6 words)
+            - category: Strictly one of ["Git / GitHub", "RAG / Retrieval", "LangSmith", "Resume / Portfolio", "ROS2 / Robotics", "Embedded Systems", "Prompt Engineering", "Other"]
+            - keywords: Array of 4-6 specific technical tags
+            - summary: 1-2 sentence descriptive summary
+            - text: Exact raw text transcript subset corresponding to that section
+            - tokens: Est. Token count (word count * 1.35)
+            - speakerTurns: Number of QA exchanges in this section
+            - redundancyScore: Overlap or fluff prediction score (0 to 20)
+
+            Return ONLY a valid, parseable JSON array. Do not include markdown headers or other wrappers.
+            
+            Conversation to split:
+            ${rawText}
+          `;
+
+          const responseText = await callGeminiAPI(prompt, "You are a precise JSON compiler that outputs valid raw arrays without metadata or markup wrappers.");
+          const parsed = JSON.parse(responseText.replace(/```json/g, "").replace(/```/g, "").trim());
+
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setChunks(parsed);
+            setSelectedChunkId(parsed[0].id);
+            showToast("Semantic AI segmentation complete!");
+            setActiveTab("dashboard");
+          } else {
+            throw new Error();
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("Gemini parse failed. Reverting to local heuristic parser.", "info");
+          processLocalPipeline(rawText);
+        } finally {
+          setIsProcessing(false);
+          setPipelineStep("");
+        }
+      };
+
+      const handleRAGSearch = async (e) => {
+        e.preventDefault();
+        if (!ragQuery.trim()) return;
+
+        setIsRAGLoading(true);
+        setRagAnswer("");
+        setRagResults([]);
+
+        try {
+          const words = ragQuery.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+          const scored = chunks.map(chunk => {
+            let score = 0;
+            const fullText = (chunk.title + " " + chunk.category + " " + chunk.text + " " + chunk.summary).toLowerCase();
+            words.forEach(w => {
+              if (fullText.includes(w)) {
+                score += 10;
+                if (chunk.keywords.some(k => k.toLowerCase() === w)) score += 15;
+              }
+            });
+            return { chunk, score };
+          });
+
+          const matches = scored.filter(s => s.score > 0).sort((a,b) => b.score - a.score).slice(0,3).map(m => m.chunk);
+          setRagResults(matches);
+
+          if (matches.length === 0) {
+            setRagAnswer("No matching database logs found. Try different search criteria.");
+            setIsRAGLoading(false);
+            return;
+          }
+
+          const retrievedContent = matches.map((m, idx) => `[Source ${idx + 1}: ${m.title}]\n${m.text}`).join("\n\n---\n\n");
+
+          if (customApiKey.trim()) {
+            const prompt = `
+              Answer the query "${ragQuery}" based strictly on the retrieved dialogue records. Cite your sources as [Source 1], [Source 2], etc.
+              
+              CONTEXT CLUSTERS:
+              ${retrievedContent}
+            `;
+            const answer = await callGeminiAPI(prompt, "You are an accurate RAG synthesizer who answers user queries relying solely on provided dialogue context.");
+            setRagAnswer(answer);
+          } else {
+            setTimeout(() => {
+              const bullets = matches.map((m, i) => `• Referring **[Source ${i+1}] - ${m.title}** (${m.category}): ${m.summary}`);
+              setRagAnswer(`### Locally Synthesized Context (Simulation)\n\nMatched **${matches.length} context nodes** related to your question.\n\n${bullets.join("\n")}\n\n*Provide a Gemini API Key to enable live end-to-end LLM answer synthesis!*`);
+            }, 1200);
+          }
+        } catch (err) {
+          setRagAnswer("An error occurred compiling the RAG synthesis response.");
+        } finally {
+          setIsRAGLoading(false);
+        }
+      };
+
+      return (
+        <div className="flex-1 flex flex-col">
+          
+          {/* HEADER */}
+          <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50 px-4 py-3">
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-600/20 text-indigo-400 p-2 rounded-lg border border-indigo-500/30">
+                  <Icons.Layers />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-bold tracking-tight text-white">Conversation Chunk Mapper</h1>
+                    <span className="text-xs font-semibold bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20">
+                      LangChain Architecture
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">Observability, Segmenting & Semantic Retrieval for Messy AI Logs</p>
+                </div>
+              </div>
+
+              {/* NAV TABS */}
+              <nav className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === "dashboard" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Icons.Compass /> Interactive Explorer
+                </button>
+                <button
+                  onClick={() => setActiveTab("import")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === "import" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Icons.Cpu /> Pipeline Engine
+                </button>
+                <button
+                  onClick={() => setActiveTab("rag")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === "rag" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Icons.Search /> RAG Sandbox
+                </button>
+                <button
+                  onClick={() => setActiveTab("analytics")}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTab === "analytics" ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Icons.BarChart2 /> Telemetry
+                </button>
+              </nav>
+
+              {/* API KEY INPUT */}
+              <div className="relative group">
+                <input
+                  type="password"
+                  placeholder="Gemini API Key (optional)"
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 rounded text-[11px] px-2.5 py-1.5 w-44 text-slate-300 focus:outline-none transition-all placeholder:text-slate-600 font-mono"
+                />
+                <div className="absolute right-2.5 top-2.5">
+                  <span className={`w-2 h-2 rounded-full inline-block ${customApiKey ? "bg-emerald-500 animate-ping" : "bg-slate-700"}`}></span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* TOAST PANEL */}
+          {toast && (
+            <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 bg-slate-900 border border-slate-700 px-4 py-3 rounded-lg shadow-2xl animate-bounce">
+              <div className={`p-1.5 rounded ${toast.type === "success" ? "bg-emerald-500/10 text-emerald-400" : "bg-indigo-500/10 text-indigo-400"}`}>
+                <Icons.CheckCircle2 />
+              </div>
+              <p className="text-xs text-slate-300 font-medium">{toast.message}</p>
+            </div>
+          )}
+
+          {/* MAIN CONTAINER CONTENT */}
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-6">
+
+            {/* TAB 1: INTERACTIVE EXPLORER */}
+            {activeTab === "dashboard" && (
+              <div className="flex flex-col gap-6">
+                
+                {/* FLOW PROGRESSION MAP */}
+                <section className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Conversation Topic Progression Map</h3>
+                    </div>
+                    <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                      <Icons.Info /> Chronological discussion path
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                    {chunks.map((item, index) => {
+                      const design = CATEGORY_COLORS[item.category] || CATEGORY_COLORS["Other"];
+                      const isSelected = item.id === selectedChunkId;
+                      return (
+                        <React.Fragment key={item.id}>
+                          <button
+                            onClick={() => setSelectedChunkId(item.id)}
+                            className={`flex-shrink-0 flex flex-col text-left p-3 rounded-lg border transition-all duration-200 w-52 relative group ${
+                              isSelected 
+                                ? "bg-slate-800/90 border-indigo-500 shadow-lg shadow-indigo-500/5 ring-1 ring-indigo-500/30" 
+                                : "bg-slate-950 hover:bg-slate-900 border-slate-800"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-mono text-slate-500">Node #{index + 1}</span>
+                              <span className={`text-[9px] px-1.5 py-0.2 rounded font-medium border ${design.bg} ${design.border} ${design.text}`}>
+                                {item.category}
+                              </span>
+                            </div>
+                            <h4 className="text-xs font-semibold text-slate-200 line-clamp-1 group-hover:text-white">{item.title}</h4>
+                            <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-900">
+                              <span className="text-[9px] text-slate-500">{item.tokens} tokens</span>
+                              <span className="text-[9px] text-indigo-400 group-hover:underline flex items-center gap-0.5">
+                                Inspect <Icons.ChevronRight />
+                              </span>
+                            </div>
+                          </button>
+                          
+                          {index < chunks.length - 1 && (
+                            <div className="flex-shrink-0 flex items-center">
+                              <div className="w-6 h-[2px] bg-gradient-to-r from-slate-800 to-indigo-950"></div>
+                              <Icons.ArrowRight />
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                {/* THREE PANEL DASHBOARD */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Sidebar Indexer */}
+                  <div className="lg:col-span-3 flex flex-col gap-4">
+                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <Icons.ListFilter /> Topic Indexer
+                        </h3>
+                        <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full font-semibold border border-indigo-500/20">
+                          {chunks.length} total
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        {CATEGORIES.map(category => {
+                          const count = category === "All" 
+                            ? chunks.length 
+                            : chunks.filter(c => c.category === category).length;
+                          const isSelected = selectedCategory === category;
+                          
+                          if (category !== "All" && count === 0) return null;
+                          
+                          return (
+                            <button
+                              key={category}
+                              onClick={() => setSelectedCategory(category)}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all text-left ${
+                                isSelected ? "bg-indigo-600 text-white font-medium" : "text-slate-300 hover:bg-slate-800"
+                              }`}
+                            >
+                              <span>{category}</span>
+                              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                                isSelected ? "bg-indigo-700 text-white" : "bg-slate-950 text-slate-400 border border-slate-800"
+                              }`}>
+                                {count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Metrics Telemetry Widget */}
+                    <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Memory telemetry</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+                            <span>Cumulative Tokens</span>
+                            <span className="text-slate-300 font-mono">{tokenStats.total} / 128,000</span>
+                          </div>
+                          <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                            <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${Math.min(100, (tokenStats.total/128000)*100)}%` }}></div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-slate-500">Avg Chunk Size</span>
+                          <span className="text-slate-300 font-mono font-medium">{tokenStats.averageSize} tokens</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-slate-500">Unused redundancy</span>
+                          <span className="text-rose-400 font-mono font-medium flex items-center gap-1">
+                            <Icons.AlertTriangle /> {tokenStats.redundantCount} flagged
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Center Searchable Card List */}
+                  <div className="lg:col-span-4 flex flex-col gap-4">
+                    <div className="relative">
+                      <div className="absolute left-3 top-3"><Icons.Search /></div>
+                      <input
+                        type="text"
+                        placeholder="Search keywords, titles, context..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-slate-900 hover:bg-slate-900/80 focus:bg-slate-900 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none transition-all text-slate-200"
+                      />
+                    </div>
+
+                    <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-1">
+                      {filteredChunks.map(chunk => {
+                        const design = CATEGORY_COLORS[chunk.category] || CATEGORY_COLORS["Other"];
+                        const isSelected = chunk.id === selectedChunkId;
+                        return (
+                          <div
+                            key={chunk.id}
+                            onClick={() => setSelectedChunkId(chunk.id)}
+                            className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                              isSelected ? "bg-slate-900 border-indigo-500 ring-1 ring-indigo-500/20" : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium border ${design.bg} ${design.border} ${design.text}`}>
+                                {chunk.category}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-500">{chunk.tokens} Toks</span>
+                            </div>
+                            <h4 className="text-xs font-bold text-slate-200 mb-1.5 line-clamp-1">{chunk.title}</h4>
+                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-3">{chunk.summary}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {chunk.keywords.slice(0,3).map(kw => (
+                                <span key={kw} className="text-[10px] bg-slate-950 text-slate-400 border border-slate-800 px-2 py-0.5 rounded">
+                                  #{kw}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right Detail Inspector Panel */}
+                  <div className="lg:col-span-5">
+                    {selectedChunk ? (
+                      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+                        <div className="p-4 border-b border-slate-800 bg-slate-900/60 flex items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+                                (CATEGORY_COLORS[selectedChunk.category] || CATEGORY_COLORS["Other"]).bg
+                              } ${(CATEGORY_COLORS[selectedChunk.category] || CATEGORY_COLORS["Other"]).text}`}>
+                                {selectedChunk.category}
+                              </span>
+                              <span className="text-[11px] font-mono text-slate-500">{selectedChunk.id}</span>
+                            </div>
+                            <h3 className="text-sm font-bold text-white">{selectedChunk.title}</h3>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-500 block">Tokens</span>
+                            <span className="text-xs font-mono font-bold text-indigo-400">{selectedChunk.tokens}</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 border-b border-slate-800 text-[11px] bg-slate-950/40">
+                          <div className="p-3 border-r border-slate-800">
+                            <span className="text-slate-500 block mb-0.5">Summary Synopsis</span>
+                            <p className="text-slate-300 leading-relaxed">{selectedChunk.summary}</p>
+                          </div>
+                          <div className="p-3 flex flex-col justify-between">
+                            <div>
+                              <span className="text-slate-500 block mb-1">Keywords</span>
+                              <div className="flex flex-wrap gap-1">
+                                {selectedChunk.keywords.map(kw => (
+                                  <span key={kw} className="bg-slate-900 text-[10px] px-1.5 py-0.2 rounded text-slate-400 border border-slate-800">
+                                    {kw}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="pt-2 flex justify-between items-center text-[10px] text-slate-500">
+                              <span>Dialogue turns: <strong className="text-slate-300">{selectedChunk.speakerTurns || 2}</strong></span>
+                              <span>Redundancy: <strong className="text-slate-300">{selectedChunk.redundancyScore}%</strong></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-950">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1">
+                              <Icons.Terminal /> Source Dialogue Chunk
+                            </span>
+                            <button
+                              onClick={() => {
+                                document.execCommand('copy'); // Legacy command fallback support inside nested layout environments
+                                navigator.clipboard.writeText(selectedChunk.text);
+                                showToast("Copied chunk to clipboard!");
+                              }}
+                              className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-1 rounded transition-all"
+                            >
+                              <Icons.Copy /> Copy Text
+                            </button>
+                          </div>
+                          <div className="bg-slate-900/50 rounded-lg p-3 max-h-[35vh] overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 border border-slate-800/60 whitespace-pre-line">
+                            {selectedChunk.text}
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-start gap-2.5">
+                          <Icons.Bookmark />
+                          <div className="text-[11px]">
+                            <span className="text-slate-300 font-semibold block">LangChain RAG Tuning Tip</span>
+                            <p className="text-slate-400 mt-0.5">
+                              {selectedChunk.tokens > 320 
+                                ? "This block has elevated density. Consider applying parent-child retriever mechanisms to segment smaller overlapping vector indices."
+                                : "Optimal segment length. Perfect sizing to support high-fidelity embedding matrices."}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-500">
+                        No dialog chunk selected. Browse topics or use the map progression.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: PIPELINE ENGINE */}
+            {activeTab === "import" && (
+              <div className="max-w-4xl mx-auto flex flex-col gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Icons.Sliders />
+                    <div>
+                      <h2 className="text-lg font-bold text-white">Import & Process Conversation Transcripts</h2>
+                      <p className="text-xs text-slate-400">Structure unstructured system records, create vector nodes, and index metadata matrices</p>
+                    </div>
+                  </div>
+
+                  {/* Tab Method Selector */}
+                  <div className="flex gap-2 mb-4 bg-slate-950 p-1.5 rounded-lg border border-slate-800 max-w-sm">
+                    <button
+                      onClick={() => setImportMethod("text")}
+                      className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${
+                        importMethod === "text" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      📋 Paste Text
+                    </button>
+                    <button
+                      onClick={() => setImportMethod("url")}
+                      className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${
+                        importMethod === "url" ? "bg-slate-800 text-white border border-slate-700" : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      🔗 Scrape Share URL
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 pt-4 border-t border-slate-800">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1.5">Segment Strategy</label>
+                      <select 
+                        value={chunkingStrategy}
+                        onChange={(e) => setChunkingStrategy(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 outline-none"
+                      >
+                        <option value="semantic">Semantic Boundaries (Dynamic AI)</option>
+                        <option value="turn-based">Dialog Turns (Every 4 exchanges)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-400 block mb-1.5">Active Parser</label>
+                      <div className="text-xs bg-slate-950 border border-slate-800 px-3 py-2 rounded text-slate-400 font-mono">
+                        {customApiKey ? "✨ Gemini 2.5-flash AI" : "⚙️ Local Client Engine"}
+                      </div>
+                    </div>
+                    <div className="flex flex-col justify-end">
+                      <button
+                        onClick={handleLoadSample}
+                        className="w-full bg-slate-950 border border-slate-800 hover:bg-slate-900 text-slate-300 py-1.5 rounded text-xs transition-all flex items-center justify-center gap-2 hover:border-slate-700"
+                      >
+                        <Icons.FileText /> Ingest Sample Log
+                      </button>
+                    </div>
+                  </div>
+
+                  {importMethod === "text" ? (
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-400 block">Raw Conversation Dialogue Log</label>
+                      <textarea
+                        placeholder="Paste raw conversation logs here..."
+                        value={rawText}
+                        onChange={(e) => setRawText(e.target.value)}
+                        className="w-full h-80 bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-[11px] leading-relaxed text-slate-200 focus:outline-none focus:border-indigo-500 placeholder:text-slate-700"
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-6 space-y-4">
+                      <div>
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">CORS-Bypass URL Scraper</h3>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Input shared conversation URLs from ChatGPT, Claude, Gists, or Raw GitHub files. The agent runs Google Search grounding to read pages cross-origin.
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. https://chatgpt.com/share/..."
+                          value={shareUrl}
+                          onChange={(e) => setShareUrl(e.target.value)}
+                          className="flex-1 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs focus:outline-none text-slate-200"
+                        />
+                        <button
+                          onClick={handleUrlImport}
+                          className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-xs font-bold text-white"
+                        >
+                          Fetch & Parse
+                        </button>
+                      </div>
+
+                      {!customApiKey && (
+                        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] p-3 rounded-lg flex items-start gap-2">
+                          <Icons.AlertTriangle />
+                          <span>
+                            <strong>API Key Needed:</strong> Web scraping is restricted in client browsers due to CORS security. Provide a Gemini API key to activate our automated server grounding proxy.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800">
+                    <p className="text-[11px] text-slate-500 flex items-center gap-1.5 max-w-md">
+                      <Icons.Info />
+                      Without an API key, we use rules-based dialog parsing. Add a Gemini key to activate advanced semantic summaries.
+                    </p>
+                    <button
+                      onClick={processAIPipeline}
+                      disabled={isProcessing || !rawText.trim()}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2"
+                    >
+                      {isProcessing ? <><Icons.RefreshCw /> {statusMessage}</> : <><Icons.Play /> Run Segment Pipeline</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: RAG PLAYGROUND */}
+            {activeTab === "rag" && (
+              <div className="max-w-4xl mx-auto flex flex-col gap-6">
+                <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-5 flex items-start gap-4">
+                  <div className="p-2 bg-indigo-500/10 rounded border border-indigo-500/30 text-indigo-400">
+                    <Icons.Cpu />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">RAG Sandbox & Context Retrieval</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed mt-0.5">
+                      Enter questions. The system isolates related dialogue nodes using localized vector simulation and structures answers using only correct, retrieved transcript segments.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                  <form onSubmit={handleRAGSearch} className="space-y-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Search dialog logs (e.g., 'How do I resolve Git conflicts?' or 'What is LangSmith?')"
+                        value={ragQuery}
+                        onChange={(e) => setRagQuery(e.target.value)}
+                        className="flex-1 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-4 py-2 text-xs focus:outline-none text-slate-200"
+                      />
+                      <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-xl text-xs font-bold text-white">
+                        Query
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {(ragResults.length > 0 || isRAGLoading || ragAnswer) && (
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <div className="md:col-span-4 space-y-4">
+                      <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Retrieved Context</h4>
+                      {ragResults.map((chunk, index) => (
+                        <div key={chunk.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 relative pl-5 overflow-hidden">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-[10px] text-indigo-400 font-bold">[Source {index + 1}]</span>
+                            <span className="text-[9px] text-slate-500">{chunk.category}</span>
+                          </div>
+                          <h5 className="text-xs font-bold text-white">{chunk.title}</h5>
+                          <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{chunk.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="md:col-span-8 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+                      <div className="p-4 border-b border-slate-800 bg-slate-900/40 flex justify-between items-center">
+                        <h4 className="text-xs font-bold uppercase text-slate-300">Answer Synthesis</h4>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {customApiKey ? "✨ Live Synthesis Model" : "⚙️ Local Fallback Module"}
+                        </span>
+                      </div>
+                      <div className="p-5 text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
+                        {isRAGLoading ? <div className="animate-pulse">Retrieving and assembling records...</div> : ragAnswer}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 4: TELEMETRY & ANALYTICS */}
+            {activeTab === "analytics" && (
+              <div className="max-w-5xl mx-auto flex flex-col gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                  <h3 className="text-xs font-bold uppercase text-slate-400 mb-4">Token Distribution Across Topic Categories</h3>
+                  
+                  <div className="h-8 bg-slate-950 rounded-xl overflow-hidden flex border border-slate-800 mb-4">
+                    {Object.keys(tokenStats.breakdown).map((cat) => {
+                      const val = tokenStats.breakdown[cat];
+                      const percentage = (val / tokenStats.total) * 100;
+                      const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS["Other"];
+                      return (
+                        <div
+                          key={cat}
+                          style={{ width: `${percentage}%` }}
+                          className={`h-full border-r border-slate-950/40 relative group ${color.bg.replace('/10', '/80')}`}
+                          title={`${cat}: ${val} tokens (${Math.round(percentage)}%)`}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {Object.keys(tokenStats.breakdown).map((cat) => {
+                      const val = tokenStats.breakdown[cat];
+                      const color = CATEGORY_COLORS[cat] || CATEGORY_COLORS["Other"];
+                      return (
+                        <div key={cat} className="p-3 bg-slate-950 border border-slate-900 rounded-lg">
+                          <span className={`text-[10px] font-bold ${color.text}`}>{cat}</span>
+                          <span className="text-sm font-mono font-bold text-white block mt-1">{val} tokens</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-rose-400">
+                      <Icons.AlertTriangle />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Context Redundancy Warnings</h3>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      System detects overlapping text scopes and conversational boilerplates that increase chunk dimensions during ingestion loops.
+                    </p>
+                    <div className="space-y-2">
+                      {chunks.filter(c => c.redundancyScore > 8).map(chunk => (
+                        <div key={chunk.id} className="p-3 bg-slate-950 border border-slate-900 rounded-lg flex justify-between items-start text-xs">
+                          <div>
+                            <span className="font-semibold text-slate-300 block">{chunk.title}</span>
+                            <span className="text-[11px] text-slate-500">Overlapped boilerplate phrasing</span>
+                          </div>
+                          <span className="text-rose-400 font-mono bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded text-[10px]">
+                            {chunk.redundancyScore}% Redundant
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-indigo-400">
+                      <Icons.Cpu />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">LangChain Architecture Guidelines</h3>
+                    </div>
+                    <div className="space-y-4 text-xs text-slate-300">
+                      <div className="p-3 bg-slate-950 border border-slate-900 rounded-lg">
+                        <strong className="text-white block mb-1">🔍 ParentDocumentRetriever Support</strong>
+                        Store comprehensive conversational blocks as parent nodes and slice smaller sub-vectors for rapid vector index searches.
+                      </div>
+                      <div className="p-3 bg-slate-950 border border-slate-900 rounded-lg">
+                        <strong className="text-white block mb-1">🏷️ Pre-Filter Metadata Indexes</strong>
+                        Leverage tags like topic categories inside query constraints to reduce semantic matching calculations over vector database namespaces.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* FOOTER */}
+          <footer className="border-t border-slate-800 bg-slate-900/60 p-4 mt-12 text-center text-xs text-slate-500">
+            Conversation Chunk Mapper - Complete Client-Side Portable Deployment Index
+          </footer>
+        </div>
+      );
+    }
+
+    // Initialize/Render the App inside ReactDOM Root Container
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
