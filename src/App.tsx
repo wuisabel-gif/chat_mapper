@@ -22,6 +22,14 @@ type Status = "idle" | "busy" | "done";
 
 const STEPS = ["Reading conversation", "Detecting topics", "Building sections", "Generating map"];
 
+const REPO_URL = "https://github.com/wuisabel-gif/chat_mapper";
+
+/** Deployed (non-localhost) host → share-link import is gated off. */
+const IS_HOSTED =
+  typeof window !== "undefined" &&
+  !/^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname) &&
+  window.location.hostname !== "";
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -210,6 +218,8 @@ export default function App() {
                   busy={status === "busy"}
                   ctaLabel={ctaLabel}
                   error={error}
+                  hosted={IS_HOSTED}
+                  repoUrl={REPO_URL}
                 />
               </div>
 

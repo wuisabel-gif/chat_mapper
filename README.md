@@ -27,6 +27,22 @@ npm run preview  # preview the production build
 
 Then open the printed local URL, paste a conversation (or click **Load Sample**), press **Process Chat**, and **Download TXT**.
 
+## Importing a conversation
+
+There are two ways to get a conversation in:
+
+- **Paste (recommended — always works).** Open your ChatGPT / Claude / Gemini conversation, select all (`Cmd/Ctrl+A`), copy, and paste into the **Paste Chat** tab. Chat Mapper automatically strips the provider's page chrome (e.g. "Skip to content / Chat history / ChatGPT is AI…"), so even a whole-page copy produces clean sections.
+- **Share link (local-only, best-effort).** In the **hosted/online version the Share Link tab is disabled** — it shows a notice linking to this repo, because fetching links needs the backend. Run Chat Mapper **locally from source** to enable it. Even then it's best-effort (see below).
+
+### ⚠️ Known limitation: share links can't be read automatically
+
+This is a provider restriction, **not a bug** in Chat Mapper:
+
+1. **The conversation is rendered by the page's JavaScript** after load. A fetched share page is just an empty app shell — the messages aren't in the HTML.
+2. **The underlying data endpoints are bot-/auth-protected and have no CORS headers.** ChatGPT's share API (`/backend-api/share/<id>`) returns **HTTP 403** to any non-browser request; Claude/Gemini load chats from gated APIs. So neither the browser nor a server-side proxy can retrieve the conversation.
+
+Because of this, link import is **gated to local installs only**: the deployed site disables it (it would always fail), while running locally lets the included backend proxy (`server/`, used when `VITE_API_URL` is set) attempt a fetch. The proxy does **not** bypass the protections above — it only helps for pages that ship real text in their HTML. **For ChatGPT, Claude, and Gemini, paste is the reliable path**, online or local.
+
 ## How it works (MVP)
 
 All processing happens in the browser — no network calls, no keys:
