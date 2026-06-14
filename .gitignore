@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+*.tsbuildinfo
+
+# AI-agent-written markdown docs — kept local, not pushed.
+README.md
+AGENT.md
+PRODUCT.md
+
+# Editor / logs
+.vscode/*
+!.vscode/extensions.json
+.idea
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

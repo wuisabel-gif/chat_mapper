@@ -40,6 +40,32 @@ function cleanWhitespace(text: string): string {
 }
 
 /**
+ * Strip common AI-UI chrome that sneaks in when someone copies a whole page
+ * instead of just the conversation (ChatGPT/Claude/Gemini nav + footer). This
+ * keeps a sloppy paste from becoming a junk "Other" section.
+ */
+const BOILERPLATE: RegExp[] = [
+  /Skip to content/gi,
+  /Chat history/gi,
+  /New chat/gi,
+  /\bVoice\b/gi,
+  /ChatGPT is AI\.\s*By using it,?\s*you agree to our Terms\s*&\s*Privacy Policy\.?/gi,
+  /Chats may be reviewed and used to improve our AI models\.?/gi,
+  /By messaging [^.,]+, you agree to our Terms and have read our Privacy Policy\.?/gi,
+  /Claude can make mistakes\.?\s*(Please double-check responses\.?)?/gi,
+  /Gemini can make mistakes,?\s*so double-check it\.?/gi,
+  /\bLearn more\b/gi,
+  /\bUpgrade plan\b/gi,
+  /\bShare\b(?=\s*$)/gim,
+];
+
+function stripBoilerplate(text: string): string {
+  let out = text;
+  for (const re of BOILERPLATE) out = out.replace(re, " ");
+  return out;
+}
+
+/**
  * Split raw text into speaker turns. Falls back to blank-line paragraphs when
  * no speaker markers are present so unstructured pastes still get chunked.
  */
@@ -180,11 +206,17 @@ function makeSummary(category: string, keywords: string[]): string {
  * section, so a back-and-forth on one topic stays together.
  */
 export function processChat(rawText: string): ChatSection[] {
-  const cleaned = cleanWhitespace(rawText);
+  const cleaned = cleanWhitespace(stripBoilerplate(rawText));
   if (!cleaned) return [];
 
   const turns = parseTurns(cleaned);
   if (turns.length === 0) return [];
+
+  // Guard against leftover UI fragments / trivially short pastes: with no
+  // speaker markers and almost no words, there's no real conversation to map.
+  const hasSpeakers = turns.some((t) => t.speaker !== null);
+  const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
+  if (!hasSpeakers && wordCount < 8) return [];
 
   // Group turns into topic sections. A conversation exchange is user-led: the
   // user's question sets the topic and the assistant's reply inherits it (its

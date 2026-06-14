@@ -24,12 +24,29 @@ export type ImportResult = {
 
 type RawMessage = { role: "User" | "Assistant" | "System"; text: string };
 
-/** Public CORS proxies, tried in order. Each wraps a target URL. */
+/** Our own backend proxy (Render Web Service), if configured at build time.
+ *  Accepts a full URL or a bare host (https:// is added automatically). */
+const RAW_API = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "");
+const API_BASE = RAW_API
+  ? /^https?:\/\//i.test(RAW_API)
+    ? RAW_API
+    : `https://${RAW_API}`
+  : undefined;
+
+/** Public CORS proxies — unreliable fallback used when no backend is set. */
 const PROXIES: Array<(url: string) => string> = [
   (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   (u) => `https://thingproxy.freeboard.io/fetch/${u}`,
 ];
+
+/** Ordered fetch targets: our backend first (most reliable), then fallbacks. */
+function buildAttempts(url: string): string[] {
+  const attempts: string[] = [];
+  if (API_BASE) attempts.push(`${API_BASE}/api/fetch?url=${encodeURIComponent(url)}`);
+  attempts.push(url, ...PROXIES.map((p) => p(url)));
+  return attempts;
+}
 
 /** Ensure the URL has a scheme so it can be fetched and parsed. */
 export function normalizeUrl(raw: string): string {
@@ -62,7 +79,7 @@ function safeHost(url: string): string {
 
 /** Fetch a URL as text, attempting the origin directly then each proxy. */
 async function fetchText(url: string, timeoutMs = 15000): Promise<string> {
-  const attempts = [url, ...PROXIES.map((p) => p(url))];
+  const attempts = buildAttempts(url);
   let lastErr: unknown;
 
   for (const target of attempts) {
@@ -84,10 +101,9 @@ async function fetchText(url: string, timeoutMs = 15000): Promise<string> {
       lastErr = err;
     }
   }
+  if (lastErr) console.debug("Chat Mapper link fetch failed:", lastErr);
   throw new Error(
-    `Could not fetch the link${
-      lastErr instanceof Error ? ` (${lastErr.message})` : ""
-    }.`,
+    "Couldn't fetch this link — it may be private or blocked. Open it, copy the text, and paste it instead.",
   );
 }
 
@@ -254,9 +270,19 @@ export async function importFromLink(rawUrl: string): Promise<ImportResult> {
     return { transcript: toTranscript(structured), provider, method: "structured", messageCount: structured.length };
   }
 
+  // The big AI providers render the chat with client-side JS behind a gated
+  // API, so a fetched page is just an empty shell — its readable text is junk.
+  // Don't pretend: tell the user to paste instead of producing garbage sections.
+  const isAiProvider = ["ChatGPT", "Claude", "Gemini", "Poe"].includes(provider);
   const text = extractReadableText(html);
-  if (!text) {
-    throw new Error("Fetched the page but found no conversation text. Paste the chat manually instead.");
+
+  if (isAiProvider || !text || text.length < 600) {
+    throw new Error(
+      "This chat is loaded by the page's JavaScript, so it can't be read from the link. " +
+        "Open the link, select all (Ctrl/Cmd+A), copy, and paste it in the Paste Chat tab.",
+    );
   }
+
+  // Non-AI pages that ship real text in the HTML can still work.
   return { transcript: text, provider, method: "text", messageCount: 0 };
 }
