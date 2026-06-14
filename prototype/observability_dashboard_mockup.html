@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversation Chunk Mapper - Observability Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              black: '#030712',
+              dark: '#0b0f19',
+              card: '#111827',
+              blue: '#3b82f6',
+              brightBlue: '#60a5fa',
+              glowBlue: '#2563eb',
+              border: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .code-font {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #030712;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2563eb;
+    }
+    .glowing-border {
+      position: relative;
+    }
+    .glowing-border::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(to bottom, #3b82f6, transparent);
+      border-radius: inherit;
+      z-index: -1;
+      opacity: 0.15;
+    }
+  </style>
+</head>
+<body class="bg-[#030712] text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-500/30 selection:text-white">
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-900 bg-neutral-950/80 backdrop-blur sticky top-0 z-50 px-4 py-3 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 w-full lg:w-auto">
+        <div class="bg-blue-600/10 text-blue-400 p-2.5 rounded-xl border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold tracking-tight text-white uppercase tracking-wider">Conversation Chunk Mapper</h1>
+            <span class="text-[10px] font-semibold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/20">
+              LangChain Architecture
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Observability, Segmenting & Semantic Retrieval for AI Logs</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center gap-1 bg-black p-1 rounded-xl border border-slate-900 w-full lg:w-auto overflow-x-auto">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all text-white bg-slate-900 shadow-sm border border-slate-800">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+          Interactive Explorer
+        </button>
+        <button onclick="switchTab('import')" id="nav-import" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z" />
+          </svg>
+          Pipeline Engine
+        </button>
+        <button onclick="switchTab('rag')" id="nav-rag" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          RAG Sandbox
+        </button>
+        <button onclick="switchTab('analytics')" id="nav-analytics" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+          </svg>
+          Telemetry
+        </button>
+      </nav>
+
+      <!-- API Key Field -->
+      <div class="relative w-full lg:w-auto">
+        <input
+          type="password"
+          id="api-key-input"
+          placeholder="Gemini API Key (optional)"
+          oninput="updateApiKey()"
+          class="bg-black border border-slate-900 hover:border-blue-900/50 focus:border-blue-500 rounded-xl text-[11px] px-3.5 py-2 w-full lg:w-48 text-slate-300 focus:outline-none transition-all placeholder:text-slate-600 code-font shadow-inner"
+        />
+        <div class="absolute right-3 top-3 flex items-center">
+          <span id="api-status-dot" class="w-2 h-2 rounded-full inline-block bg-slate-700 shadow-[0_0_8px_rgba(255,255,255,0.1)]"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CUSTOM TOAST BANNER -->
+  <div id="toast-banner" class="fixed bottom-4 right-4 z-50 flex items-center gap-3 bg-neutral-950 border border-blue-900/40 px-4 py-3 rounded-xl shadow-[0_10px_30px_rgba(59,130,246,0.15)] transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+    <div class="p-1.5 rounded bg-blue-500/10 text-blue-400">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </div>
+    <p id="toast-message" class="text-xs text-slate-300 font-medium"></p>
+  </div>
+
+  <!-- MAIN CONTAINER content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-6">
+
+    <!-- TAB 1: INTERACTIVE EXPLORER -->
+    <div id="tab-dashboard-content" class="flex flex-col gap-6">
+      
+      <!-- FLOW PROGRESSION MAP -->
+      <section class="bg-neutral-950 border border-slate-900 rounded-xl p-4 shadow-[0_0_30px_rgba(0,0,0,0.6)] glowing-border">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+            <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-300">Conversation Topic Progression Map</h3>
+          </div>
+          <div class="text-[10px] text-slate-500 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg> 
+            Chronological discussion timeline
+          </div>
+        </div>
+
+        <div id="progression-map-container" class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+          <!-- Dynamic content injection from state -->
+        </div>
+      </section>
+
+      <!-- MAIN INTERACTIVE THREE-PANEL INTERFACE -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Sidebar Category Indexer -->
+        <div class="lg:col-span-3 flex flex-col gap-4">
+          <div class="bg-neutral-950 border border-slate-900 rounded-xl p-4 shadow-[0_0_30px_rgba(0,0,0,0.6)] glowing-border">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 8.293A1 1 0 013 7.586V4z" />
+                </svg>
+                Topic Indexer
+              </h3>
+              <span id="total-chunks-badge" class="text-[10px] bg-blue-500/10 text-blue-400 px-2.5 py-0.5 rounded-full font-semibold border border-blue-500/20">0 total</span>
+            </div>
+
+            <div id="category-sidebar-list" class="space-y-1">
+              <!-- Dynamic category insertion -->
+            </div>
+          </div>
+
+          <!-- Quick Telemetry Card -->
+          <div class="bg-neutral-950 border border-slate-900 rounded-xl p-4 shadow-[0_0_30px_rgba(0,0,0,0.6)]">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Memory telemetry</h4>
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+                  <span>Cumulative Tokens</span>
+                  <span id="telemetry-total-tokens" class="text-slate-300 font-semibold code-font">0 / 128,000</span>
+                </div>
+                <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                  <div id="telemetry-progress-bar" class="bg-blue-500 h-full rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(59,130,246,0.5)]" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="flex justify-between items-center text-[11px]">
+                <span class="text-slate-500">Avg Chunk Size</span>
+                <span id="telemetry-avg-size" class="text-slate-300 font-semibold code-font">0 tokens</span>
+              </div>
+              <div class="flex justify-between items-center text-[11px]">
+                <span class="text-slate-500">Unused redundancy</span>
+                <span id="telemetry-redundant-flag" class="text-blue-400 font-semibold code-font flex items-center gap-1">0 flagged</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Filterable Card List -->
+        <div class="lg:col-span-4 flex flex-col gap-4">
+          <div class="relative">
+            <div class="absolute left-3 top-3 text-slate-500">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Search keywords, titles, context..."
+              onkeyup="handleSearch(this.value)"
+              class="w-full bg-neutral-950 border border-slate-900 hover:border-blue-900/40 focus:border-blue-500 rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none transition-all text-slate-200"
+            />
+          </div>
+
+          <div id="chunks-cards-list" class="space-y-3 overflow-y-auto max-h-[60vh] pr-1">
+            <!-- Dynamic list population -->
+          </div>
+        </div>
+
+        <!-- Right Detail Inspector Panel -->
+        <div class="lg:col-span-5" id="inspector-panel-container">
+          <!-- Dynamic details template target -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: PIPELINE ENGINE -->
+    <div id="tab-import-content" class="max-w-4xl mx-auto w-full flex flex-col gap-6 hidden">
+      <div class="bg-neutral-950 border border-slate-900 rounded-xl p-6 shadow-md glowing-border">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="bg-blue-600/10 text-blue-400 p-2 rounded-lg border border-blue-500/20">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white uppercase tracking-wider">Import & Process Conversations</h2>
+            <p class="text-xs text-slate-400">Structure unstructured chat strings, construct virtual nodes, and segment topics</p>
+          </div>
+        </div>
+
+        <!-- Tab Selector: Paste text or Link -->
+        <div class="flex gap-2 mb-4 bg-black p-1.5 rounded-xl border border-slate-900 max-w-sm">
+          <button onclick="setImportMethod('text')" id="btn-import-text" class="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-900 text-white border border-slate-800">
+            📋 Paste Text
+          </button>
+          <button onclick="setImportMethod('url')" id="btn-import-url" class="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-slate-200">
+            🔗 Scrape Share URL
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 pt-4 border-t border-slate-900">
+          <div>
+            <label class="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">Segment Strategy</label>
+            <select 
+              id="chunk-strategy-select"
+              class="w-full bg-black border border-slate-900 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:border-blue-500 outline-none"
+            >
+              <option value="semantic">Semantic Boundaries (Dynamic AI)</option>
+              <option value="turn-based">Dialog Turns (Every 4 exchanges)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">Active Parser</label>
+            <div id="active-parser-badge" class="text-xs bg-black border border-slate-900 px-3 py-2 rounded-lg text-slate-400 font-mono">
+              ⚙️ Local Client Engine
+            </div>
+          </div>
+          <div class="flex flex-col justify-end">
+            <button
+              onclick="loadSampleLog()"
+              class="w-full bg-black border border-slate-900 hover:bg-slate-900 hover:border-blue-900/50 text-slate-300 py-2 rounded-lg text-xs transition-all flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Ingest Sample Log
+            </button>
+          </div>
+        </div>
+
+        <!-- PASTE TEXT VIEW -->
+        <div id="import-text-view" class="space-y-2">
+          <label class="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Raw Conversation Dialogue Log</label>
+          <textarea
+            id="raw-text-input"
+            placeholder="Paste raw conversation logs here..."
+            class="w-full h-80 bg-black border border-slate-900 rounded-xl p-4 font-mono text-[11px] leading-relaxed text-slate-200 focus:outline-none focus:border-blue-500"
+          ></textarea>
+        </div>
+
+        <!-- SCRAPE URL VIEW -->
+        <div id="import-url-view" class="bg-black border border-slate-900 rounded-xl p-6 space-y-4 hidden">
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">CORS-Bypass URL Scraper</h3>
+            <p class="text-[11px] text-slate-400 mt-1">
+              Input shared conversation URLs from ChatGPT, Claude, Gists, or Raw GitHub files. The agent runs Gemini's Google Search grounding to read page layouts safely.
+            </p>
+          </div>
+
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="share-url-input"
+              placeholder="e.g. https://chatgpt.com/share/..."
+              class="flex-1 bg-neutral-900 border border-slate-900 focus:border-blue-500 rounded-xl px-3 py-2 text-xs focus:outline-none text-slate-200 code-font"
+            />
+            <button
+              onclick="triggerScrape()"
+              class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-xl text-xs font-bold text-white whitespace-nowrap transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+            >
+              Fetch & Parse
+            </button>
+          </div>
+
+          <div id="bypass-warning" class="bg-blue-500/5 border border-blue-500/10 text-slate-400 text-[10px] p-3 rounded-lg flex items-start gap-2 leading-relaxed">
+            <svg class="w-4 h-4 flex-shrink-0 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>
+              <strong>API Key Required:</strong> Web scraping layout structures cross-origin is blocked natively inside browser runtimes. You must supply a Gemini API Key to run automated fetch triggers.
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions panel -->
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-900">
+          <p class="text-[11px] text-slate-500 flex items-center gap-1.5 max-w-md">
+            <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Without an API key, we use local rules-based dialog parsing. Add a Gemini key in the header to activate advanced semantic summarization.
+          </p>
+          <button
+            onclick="triggerPipeline()"
+            id="start-pipeline-btn"
+            class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 whitespace-nowrap shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Run Segment Pipeline
+          </button>
+        </div>
+      </div>
+
+      <!-- INGESTION TELEMETRY VIEW -->
+      <div id="pipeline-progress-cards" class="bg-neutral-950 border border-slate-900 rounded-xl p-5 space-y-4 hidden">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Ingestion Telemetry Stream</h4>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+          <div id="step-card-cleaning" class="p-3 rounded-lg border bg-black border-slate-900 text-slate-500 transition-all">
+            <div class="font-mono mb-1 text-slate-400">01_NORMALIZE</div>
+            <span class="text-[10px]">Filtering double lines & format characters.</span>
+          </div>
+
+          <div id="step-card-splitting" class="p-3 rounded-lg border bg-black border-slate-900 text-slate-500 transition-all">
+            <div class="font-mono mb-1 text-slate-400">02_TEXT_SPLITTING</div>
+            <span class="text-[10px]">Identifying recursive paragraph offsets.</span>
+          </div>
+
+          <div id="step-card-extracting" class="p-3 rounded-lg border bg-black border-slate-900 text-slate-500 transition-all">
+            <div class="font-mono mb-1 text-slate-400">03_METADATA_LABELLING</div>
+            <span class="text-[10px]">Calculating keyword embeddings & metrics.</span>
+          </div>
+
+          <div id="step-card-summarizing" class="p-3 rounded-lg border bg-black border-slate-900 text-slate-500 transition-all">
+            <div class="font-mono mb-1 text-slate-400">04_SUMMARIZATION</div>
+            <span class="text-[10px]">Generating descriptive context cards.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: RAG PLAYGROUND -->
+    <div id="tab-rag-content" class="max-w-4xl mx-auto w-full flex flex-col gap-6 hidden">
+      <div class="bg-blue-950/20 border border-blue-500/20 rounded-xl p-5 flex items-start gap-4 glowing-border">
+        <div class="p-2 bg-blue-500/10 rounded border border-blue-500/30 text-blue-400">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">RAG Sandbox & Context Retrieval</h3>
+          <p class="text-xs text-slate-400 leading-relaxed mt-0.5">
+            Enter questions. The system isolates related dialogue nodes using localized vector simulation and structures answers using only correct, retrieved transcript segments.
+          </p>
+        </div>
+      </div>
+
+      <div class="bg-neutral-950 border border-slate-900 rounded-xl p-5 shadow-sm">
+        <form onsubmit="handleRagSubmit(event)" class="space-y-4">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="rag-query-input"
+              placeholder="Search dialog logs (e.g., 'How do I resolve Git conflicts?' or 'What is LangSmith?')"
+              class="flex-1 bg-black border border-slate-900 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs focus:outline-none text-slate-200"
+            />
+            <button type="submit" id="rag-submit-btn" class="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+              Query
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Result presentation target block -->
+      <div id="rag-output-container" class="grid grid-cols-1 md:grid-cols-12 gap-6 hidden">
+        
+        <!-- Matching Sources -->
+        <div class="md:col-span-4 space-y-4">
+          <h4 class="text-xs font-bold uppercase text-slate-400 tracking-wider">Retrieved Context</h4>
+          <div id="rag-sources-target" class="space-y-3">
+            <!-- Dynamic dynamic sources inside template -->
+          </div>
+        </div>
+
+        <!-- Synthesized Answer -->
+        <div class="md:col-span-8 bg-neutral-950 border border-slate-900 rounded-xl overflow-hidden shadow-xl">
+          <div class="p-4 border-b border-slate-900 bg-neutral-950/40 flex justify-between items-center">
+            <h4 class="text-xs font-bold uppercase text-slate-300">Answer Synthesis</h4>
+            <span id="rag-engine-identifier" class="text-[10px] text-slate-500 font-mono">⚙️ Local Fallback Module</span>
+          </div>
+          <div id="rag-answer-target" class="p-5 text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
+            <!-- Dynamic answer target text -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 4: TELEMETRY & ANALYTICS -->
+    <div id="tab-analytics-content" class="max-w-5xl mx-auto w-full flex flex-col gap-6 hidden">
+      <div class="bg-neutral-950 border border-slate-900 rounded-xl p-5 shadow-[0_0_30px_rgba(0,0,0,0.6)]">
+        <h3 class="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wider">Token Distribution Across Topic Categories</h3>
+        
+        <!-- Stacked Percentage Bar Chart -->
+        <div id="stacked-percent-bar" class="h-8 bg-black rounded-xl overflow-hidden flex border border-slate-900 mb-4">
+          <!-- Populated programmatically -->
+        </div>
+
+        <div id="analytics-grid-breakdown" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <!-- Categories with numeric indicators -->
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Warning alerts -->
+        <div class="bg-neutral-950 border border-slate-900 rounded-xl p-5 space-y-4">
+          <div class="flex items-center gap-2 text-rose-500">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">Context Redundancy Warnings</h3>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            System detects overlapping text scopes and conversational boilerplates that increase chunk dimensions during ingestion loops.
+          </p>
+
+          <div id="analytics-redundancy-targets" class="space-y-2">
+            <!-- Overlap metrics targets -->
+          </div>
+        </div>
+
+        <!-- Recommendations and engineering principles -->
+        <div class="bg-neutral-950 border border-slate-900 rounded-xl p-5 space-y-4">
+          <div class="flex items-center gap-2 text-blue-400">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z" />
+            </svg>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">LangChain Architecture Guidelines</h3>
+          </div>
+          <div class="space-y-4 text-xs text-slate-300">
+            <div class="p-3 bg-black border border-slate-900 rounded-lg">
+              <strong class="text-white block mb-1">🔍 ParentDocumentRetriever Support</strong>
+              Store comprehensive conversational blocks as parent nodes and slice smaller sub-vectors for rapid vector index searches.
+            </div>
+            <div class="p-3 bg-black border border-slate-900 rounded-lg">
+              <strong class="text-white block mb-1">🏷️ Pre-Filter Metadata Indexes</strong>
+              Leverage tags like topic categories inside query constraints to reduce semantic matching calculations over vector database namespaces.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-900 bg-neutral-950 p-4 mt-12 text-center text-xs text-slate-500">
+    Conversation Chunk Mapper - Complete Client-Side Portable Deployment Index
+  </footer>
+
+  <!-- STATE MANAGEMENT & RUNTIME LOGIC -->
+  <script>
+    // State values initialization
+    let state = {
+      activeTab: "dashboard",
+      chunks: [],
+      selectedChunkId: "",
+      selectedCategory: "All",
+      searchQuery: "",
+      rawText: "",
+      isProcessing: false,
+      pipelineStep: "",
+      customApiKey: "",
+      chunkingStrategy: "semantic",
+      statusMessage: "",
+      importMethod: "text", // "text" or "url"
+      shareUrl: "",
+      ragQuery: "",
+      isRAGLoading: false,
+      ragResults: [],
+      ragAnswer: ""
+    };
+
+    // Color definitions emphasizing electric blue and obsidian accents
+    const CATEGORY_COLORS = {
+      "Git / GitHub": { bg: "bg-blue-900/20", border: "border-blue-500/20", text: "text-blue-300" },
+      "RAG / Retrieval": { bg: "bg-cyan-900/20", border: "border-cyan-500/20", text: "text-cyan-300" },
+      "LangSmith": { bg: "bg-sky-900/20", border: "border-sky-500/20", text: "text-sky-300" },
+      "Resume / Portfolio": { bg: "bg-indigo-900/20", border: "border-indigo-500/20", text: "text-indigo-300" },
+      "ROS2 / Robotics": { bg: "bg-blue-950/40", border: "border-blue-400/20", text: "text-blue-200" },
+      "Embedded Systems": { bg: "bg-slate-900/30", border: "border-slate-500/20", text: "text-slate-300" },
+      "Prompt Engineering": { bg: "bg-blue-800/10", border: "border-blue-400/10", text: "text-blue-400" },
+      "Other": { bg: "bg-slate-950", border: "border-slate-900", text: "text-slate-400" },
+    };
+
+    const CATEGORIES = [
+      "All",
+      "Git / GitHub",
+      "RAG / Retrieval",
+      "LangSmith",
+      "Resume / Portfolio",
+      "ROS2 / Robotics",
+      "Embedded Systems",
+      "Prompt Engineering",
+      "Other"
+    ];
+
+    function getCategoryColors(cat) {
+      return CATEGORY_COLORS[cat] || CATEGORY_COLORS["Other"];
+    }
+
+    function showToast(message, type = "success") {
+      const banner = document.getElementById("toast-banner");
+      const textTarget = document.getElementById("toast-message");
+      textTarget.textContent = message;
+      
+      banner.classList.remove("translate-y-20", "opacity-0", "pointer-events-none");
+      banner.classList.add("translate-y-0", "opacity-100");
+
+      setTimeout(() => {
+        banner.classList.add("translate-y-20", "opacity-0", "pointer-events-none");
+        banner.classList.remove("translate-y-0", "opacity-100");
+      }, 3500);
+    }
+
+    // ==========================================
+    // SYSTEM NAVIGATION & TAB DISPATCHERS
+    // ==========================================
+    function switchTab(targetTab) {
+      state.activeTab = targetTab;
+      
+      // Update DOM visibility of tabs
+      const tabs = ["dashboard", "import", "rag", "analytics"];
+      tabs.forEach(tab => {
+        const contentEl = document.getElementById(`tab-${tab}-content`);
+        const navEl = document.getElementById(`nav-${tab}`);
+        
+        if (tab === targetTab) {
+          contentEl.classList.remove("hidden");
+          navEl.className = "flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all text-white bg-slate-900 shadow-sm border border-slate-800";
+        } else {
+          contentEl.classList.add("hidden");
+          navEl.className = "flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200";
+        }
+      });
+
+      if (targetTab === "dashboard") {
+        renderExplorerLayouts();
+      } else if (targetTab === "analytics") {
+        renderAnalyticsLayouts();
+      }
+    }
+
+    function setImportMethod(method) {
+      state.importMethod = method;
+      const pasteBtn = document.getElementById("btn-import-text");
+      const urlBtn = document.getElementById("btn-import-url");
+      const pasteView = document.getElementById("import-text-view");
+      const urlView = document.getElementById("import-url-view");
+
+      if (method === "text") {
+        pasteBtn.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-900 text-white border border-slate-800";
+        urlBtn.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-slate-200";
+        pasteView.classList.remove("hidden");
+        urlView.classList.add("hidden");
+      } else {
+        urlBtn.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-900 text-white border border-slate-800";
+        pasteBtn.className = "flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-slate-200";
+        urlView.classList.remove("hidden");
+        pasteView.classList.add("hidden");
+      }
+    }
+
+    function updateApiKey() {
+      const val = document.getElementById("api-key-input").value;
+      state.customApiKey = val;
+      const dot = document.getElementById("api-status-dot");
+      const parserBadge = document.getElementById("active-parser-badge");
+
+      if (val.trim()) {
+        dot.className = "w-2 h-2 rounded-full inline-block bg-blue-500 animate-ping shadow-[0_0_10px_#3b82f6]";
+        parserBadge.textContent = "✨ Gemini 2.5-flash AI";
+      } else {
+        dot.className = "w-2 h-2 rounded-full inline-block bg-slate-700";
+        parserBadge.textContent = "⚙️ Local Client Engine";
+      }
+    }
+
+    // ==========================================
+    // EXPLAINER INTERFACE RENDERING LOGIC
+    // ==========================================
+    function renderExplorerLayouts() {
+      renderProgressionMap();
+      renderSidebarCategories();
+      renderChunkCardsList();
+      renderActiveInspector();
+    }
+
+    function renderProgressionMap() {
+      const container = document.getElementById("progression-map-container");
+      container.innerHTML = "";
+
+      state.chunks.forEach((item, index) => {
+        const colors = getCategoryColors(item.category);
+        const isSelected = item.id === state.selectedChunkId;
+
+        const button = document.createElement("button");
+        button.onclick = () => {
+          state.selectedChunkId = item.id;
+          renderExplorerLayouts();
+        };
+        button.className = `flex-shrink-0 flex flex-col text-left p-3 rounded-lg border transition-all duration-200 w-52 relative group ${
+          isSelected 
+            ? "bg-slate-900 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30" 
+            : "bg-[#0b0f19] hover:bg-slate-900 border-slate-900"
+        }`;
+
+        button.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[10px] font-mono text-slate-500">Node #${index + 1}</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded font-medium border ${colors.bg} ${colors.border} ${colors.text}">
+              ${item.category}
+            </span>
+          </div>
+          <h4 class="text-xs font-semibold text-slate-200 line-clamp-1 group-hover:text-white">${item.title}</h4>
+          <div class="flex items-center justify-between mt-2 pt-1 border-t border-slate-900">
+            <span class="text-[9px] text-slate-500">${item.tokens} tokens</span>
+            <span class="text-[9px] text-blue-400 group-hover:underline flex items-center gap-0.5">
+              Inspect 
+              <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </div>
+        `;
+
+        container.appendChild(button);
+
+        if (index < state.chunks.length - 1) {
+          const arrow = document.createElement("div");
+          arrow.className = "flex-shrink-0 flex items-center";
+          arrow.innerHTML = `
+            <div class="w-6 h-[1.5px] bg-gradient-to-r from-slate-900 to-blue-900/30"></div>
+            <svg class="w-4 h-4 text-blue-900/50 -ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          `;
+          container.appendChild(arrow);
+        }
+      });
+    }
+
+    function renderSidebarCategories() {
+      const container = document.getElementById("category-sidebar-list");
+      container.innerHTML = "";
+
+      const badgeTotal = document.getElementById("total-chunks-badge");
+      badgeTotal.textContent = `${state.chunks.length} total`;
+
+      CATEGORIES.forEach(category => {
+        const count = category === "All" 
+          ? state.chunks.length 
+          : state.chunks.filter(c => c.category === category).length;
+
+        if (category !== "All" && count === 0) return; // skip empty categories
+
+        const isSelected = state.selectedCategory === category;
+        const button = document.createElement("button");
+        button.onclick = () => {
+          state.selectedCategory = category;
+          renderExplorerLayouts();
+        };
+        button.className = `w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all text-left ${
+          isSelected ? "bg-blue-600 text-white font-medium shadow-[0_0_10px_rgba(37,99,235,0.3)]" : "text-slate-300 hover:bg-slate-900"
+        }`;
+        button.innerHTML = `
+          <span>${category}</span>
+          <span class="text-[10px] px-1.5 py-0.2 rounded-full ${
+            isSelected ? "bg-blue-700 text-white" : "bg-black text-slate-400 border border-slate-900"
+          }">
+            ${count}
+          </span>
+        `;
+        container.appendChild(button);
+      });
+
+      const accum = state.chunks.reduce((acc, curr) => acc + curr.tokens, 0);
+      const avg = Math.round(accum / (state.chunks.length || 1));
+      const redundancyCount = state.chunks.filter(c => c.redundancyScore > 10).length;
+
+      document.getElementById("telemetry-total-tokens").textContent = `${accum.toLocaleString()} / 128,000`;
+      document.getElementById("telemetry-progress-bar").style.width = `${Math.min(100, (accum / 128000) * 100)}%`;
+      document.getElementById("telemetry-avg-size").textContent = `${avg} tokens`;
+      document.getElementById("telemetry-redundant-flag").textContent = `${redundancyCount} flagged`;
+    }
+
+    function handleSearch(query) {
+      state.searchQuery = query;
+      renderChunkCardsList();
+    }
+
+    function renderChunkCardsList() {
+      const container = document.getElementById("chunks-cards-list");
+      container.innerHTML = "";
+
+      const filtered = state.chunks.filter(chunk => {
+        const matchesCategory = state.selectedCategory === "All" || chunk.category === state.selectedCategory;
+        const lowerQuery = state.searchQuery.toLowerCase();
+        return matchesCategory && (
+          state.searchQuery === "" ||
+          chunk.title.toLowerCase().includes(lowerQuery) ||
+          chunk.text.toLowerCase().includes(lowerQuery) ||
+          chunk.summary.toLowerCase().includes(lowerQuery) ||
+          chunk.keywords.some(kw => kw.toLowerCase().includes(lowerQuery))
+        );
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-neutral-900/20 border border-slate-900 border-dashed rounded-xl p-8 text-center text-xs text-slate-500">
+            No matching discussion chunks found.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(chunk => {
+        const colors = getCategoryColors(chunk.category);
+        const isSelected = chunk.id === state.selectedChunkId;
+
+        const card = document.createElement("div");
+        card.onclick = () => {
+          state.selectedChunkId = chunk.id;
+          renderExplorerLayouts();
+        };
+        card.className = `p-4 rounded-xl border cursor-pointer transition-all ${
+          isSelected ? "bg-slate-900 border-blue-500/80 shadow-[0_0_15px_rgba(59,130,246,0.1)] ring-1 ring-blue-500/20" : "bg-neutral-950/40 hover:bg-slate-900/50 border-slate-900"
+        }`;
+
+        let kwBadges = chunk.keywords.slice(0,3).map(kw => `
+          <span class="text-[10px] bg-black text-slate-400 border border-slate-900 px-2 py-0.5 rounded">
+            #${kw}
+          </span>
+        `).join("");
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <span class="text-[9px] px-2 py-0.5 rounded-full font-medium border ${colors.bg} ${colors.border} ${colors.text}">
+              ${chunk.category}
+            </span>
+            <span class="text-[10px] font-mono text-slate-500">${chunk.tokens} Toks</span>
+          </div>
+          <h4 class="text-xs font-bold text-slate-200 mb-1.5 line-clamp-1">${chunk.title}</h4>
+          <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-3">${chunk.summary}</p>
+          <div class="flex flex-wrap gap-1">
+            ${kwBadges}
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function renderActiveInspector() {
+      const container = document.getElementById("inspector-panel-container");
+      const chunk = state.chunks.find(c => c.id === state.selectedChunkId) || state.chunks[0];
+
+      if (!chunk) {
+        container.innerHTML = `
+          <div class="bg-neutral-950 border border-slate-900 rounded-xl p-8 text-center text-slate-500">
+            No dialogue chunks selected.
+          </div>
+        `;
+        return;
+      }
+
+      const colors = getCategoryColors(chunk.category);
+      const densityTip = chunk.tokens > 320 
+        ? "This block has elevated density. Consider applying parent-child retriever mechanisms to segment smaller overlapping vector indices."
+        : "Optimal segment length. Perfect sizing to support high-fidelity embedding matrices.";
+
+      const keywordPills = chunk.keywords.map(kw => `
+        <span class="bg-neutral-900 text-[10px] px-1.5 py-0.2 rounded text-slate-400 border border-slate-900">
+          ${kw}
+        </span>
+      `).join("");
+
+      container.innerHTML = `
+        <div class="bg-neutral-950 border border-slate-900 rounded-xl overflow-hidden shadow-xl glowing-border">
+          <div class="p-4 border-b border-slate-900 bg-neutral-950/60 flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-medium border ${colors.bg} ${colors.border} ${colors.text}">
+                  ${chunk.category}
+                </span>
+                <span class="text-[11px] font-mono text-slate-500">${chunk.id}</span>
+              </div>
+              <h3 class="text-sm font-bold text-white">${chunk.title}</h3>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-500 block">Tokens</span>
+              <span class="text-xs font-mono font-bold text-blue-400">${chunk.tokens}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 border-b border-slate-900 text-[11px] bg-black/40">
+            <div class="p-3 border-r border-slate-900">
+              <span class="text-slate-500 block mb-0.5 uppercase tracking-wider">Summary Synopsis</span>
+              <p class="text-slate-300 leading-relaxed font-light">${chunk.summary}</p>
+            </div>
+            <div class="p-3 flex flex-col justify-between">
+              <div>
+                <span class="text-slate-500 block mb-1 uppercase tracking-wider">Keywords</span>
+                <div class="flex flex-wrap gap-1">
+                  ${keywordPills}
+                </div>
+              </div>
+              <div class="pt-2 flex justify-between items-center text-[10px] text-slate-500">
+                <span>Dialogue turns: <strong class="text-slate-300 font-mono">${chunk.speakerTurns || 2}</strong></span>
+                <span>Redundancy: <strong class="text-slate-300 font-mono">${chunk.redundancyScore}%</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-black">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1">
+                <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Source Dialogue Chunk
+              </span>
+              <button
+                onclick="copyChunkToClipboard('${chunk.id}')"
+                class="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-1 rounded transition-all"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                Copy Text
+              </button>
+            </div>
+            <div id="inspector-text-target" class="bg-[#0b0f19] rounded-lg p-3 max-h-[35vh] overflow-y-auto font-mono text-[11px] leading-relaxed text-slate-300 border border-slate-900/60 whitespace-pre-line">
+              ${chunk.text}
+            </div>
+          </div>
+
+          <div class="p-3 bg-neutral-900 border-t border-slate-900 flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+            <div class="text-[11px]">
+              <span class="text-slate-300 font-semibold block">LangChain RAG Tuning Tip</span>
+              <p class="text-slate-400 mt-0.5">${densityTip}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function copyChunkToClipboard(id) {
+      const chunk = state.chunks.find(c => c.id === id);
+      if (chunk) {
+        const textarea = document.createElement("textarea");
+        textarea.value = chunk.text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        showToast("Copied chunk to clipboard!");
+      }
+    }
+
+    // ==========================================
+    // INGESTION ENGINE PIPELINE TRIGGERS
+    // ==========================================
+    function loadSampleLog() {
+      document.getElementById("raw-text-input").value = SAMPLE_RAW_CONVERSATION.trim();
+      showToast("Transcript sample loaded! Click 'Start Pipeline Engine'.");
+    }
+
+    async function callGeminiAPI(prompt, systemInstruction = "") {
+      const key = state.customApiKey.trim();
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }]
+      };
+      if (systemInstruction) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+      }
+
+      let delay = 1000;
+      for (let i = 0; i < 5; i++) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) return text;
+          throw new Error("Empty candidate path");
+        } catch (err) {
+          if (i === 4) throw err;
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+    }
+
+    async function triggerScrape() {
+      const urlInput = document.getElementById("share-url-input").value;
+      if (!urlInput.trim()) {
+        showToast("Please enter a valid shared chat link or raw URL", "error");
+        return;
+      }
+      
+      state.shareUrl = urlInput;
+      
+      const isRawFile = urlInput.includes("raw.githubusercontent") || 
+                        urlInput.includes("gist.githubusercontent") || 
+                        urlInput.endsWith(".txt") || 
+                        urlInput.endsWith(".json") || 
+                        urlInput.endsWith(".md");
+
+      if (isRawFile) {
+        try {
+          showToast("Fetching raw document directly...", "info");
+          const res = await fetch(urlInput);
+          if (!res.ok) throw new Error();
+          const text = await res.text();
+          document.getElementById("raw-text-input").value = text;
+          showToast("Raw text loaded successfully from resource URL!");
+          setImportMethod("text");
+        } catch (err) {
+          showToast("Direct download blocked. Falling back to Gemini CORS Scraper...", "info");
+          await fetchUrlViaGemini();
+        }
+      } else {
+        await fetchUrlViaGemini();
+      }
+    }
+
+    async function fetchUrlViaGemini() {
+      if (!state.customApiKey.trim()) {
+        showToast("Scraping cross-origin layout pages requires a Gemini API Key.", "error");
+        return;
+      }
+
+      showToast("Instructing Gemini Grounding Engine to fetch page (CORS Bypass)...", "info");
+      try {
+        const prompt = `
+          Please inspect and load the public shared conversation content of: "${state.shareUrl}".
+          Extract the entire conversational dialog between the User and Assistant.
+          
+          Structure the parsed dialogue strictly in this format:
+          User: [User query here]
+          Assistant: [Assistant response here]
+          
+          Respond only with the extracted transcript. Do not wrap in markdown quotes or preface with dialogue introductions.
+        `;
+
+        const key = state.customApiKey.trim();
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+        
+        const payload = {
+          contents: [{ parts: [{ text: prompt }] }],
+          tools: [{ "google_search": {} }]
+        };
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error();
+        
+        const data = await response.json();
+        const scraped = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (scraped) {
+          document.getElementById("raw-text-input").value = scraped.trim();
+          showToast("Dialog retrieved successfully! Ready for Chunk pipeline.", "success");
+          setImportMethod("text");
+        } else {
+          throw new Error();
+        }
+      } catch (err) {
+        showToast("Scraping failed. The link might be private. Copy and paste the raw text instead.", "error");
+      }
+    }
+
+    async function triggerPipeline() {
+      const textToProcess = document.getElementById("raw-text-input").value;
+      if (!textToProcess.trim()) {
+        showToast("Please input text dialog to load database chunks.", "error");
+        return;
+      }
+
+      state.isProcessing = true;
+      document.getElementById("pipeline-progress-cards").classList.remove("hidden");
+      document.getElementById("start-pipeline-btn").disabled = true;
+
+      if (!state.customApiKey.trim()) {
+        showToast("No API Key detected. Engaging local split parser...", "info");
+        runLocalPipeline(textToProcess);
+        return;
+      }
+
+      // Gemini AI Engine path
+      updateProgressUI("cleaning");
+      try {
+        const prompt = `
+          You are a LangChain system design processor. Break down the following conversation into 4-8 topic-based logical chunks.
+          
+          For each chunk, provide:
+          - id: Unique string ID (e.g. "chunk_ai_001")
+          - title: Clear, concise title summarizing the core technical concept (max 6 words)
+          - category: Strictly one of ["Git / GitHub", "RAG / Retrieval", "LangSmith", "Resume / Portfolio", "ROS2 / Robotics", "Embedded Systems", "Prompt Engineering", "Other"]
+          - keywords: Array of 4-6 specific technical tags
+          - summary: 1-2 sentence descriptive summary
+          - text: Exact raw text transcript subset corresponding to that section
+          - tokens: Est. Token count (word count * 1.35)
+          - speakerTurns: Number of QA exchanges in this section
+          - redundancyScore: Overlap or fluff prediction score (0 to 20)
+
+          Return ONLY a valid, parseable JSON array. Do not include markdown headers, quotes, or wrappers.
+          
+          Conversation to split:
+          ${textToProcess}
+        `;
+
+        updateProgressUI("splitting");
+        const responseText = await callGeminiAPI(prompt, "You are a precise JSON compiler that outputs valid raw arrays without metadata or markup wrappers.");
+        
+        updateProgressUI("extracting");
+        const cleanJsonStr = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(cleanJsonStr);
+
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          updateProgressUI("summarizing");
+          setTimeout(() => {
+            state.chunks = parsed;
+            state.selectedChunkId = parsed[0].id;
+            state.isProcessing = false;
+            document.getElementById("pipeline-progress-cards").classList.add("hidden");
+            document.getElementById("start-pipeline-btn").disabled = false;
+            showToast("Semantic AI segmentation complete!");
+            switchTab("dashboard");
+          }, 800);
+        } else {
+          throw new Error();
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("Gemini parse failed. Reverting to local heuristic parser.", "info");
+        runLocalPipeline(textToProcess);
+      }
+    }
+
+    function updateProgressUI(step) {
+      state.pipelineStep = step;
+      const steps = ["cleaning", "splitting", "extracting", "summarizing"];
+      steps.forEach(s => {
+        const card = document.getElementById(`step-card-${s}`);
+        if (s === step) {
+          card.className = "p-3 rounded-lg border bg-blue-500/10 border-blue-500 text-white transition-all shadow-[0_0_10px_rgba(59,130,246,0.2)]";
+        } else {
+          card.className = "p-3 rounded-lg border bg-black border-slate-900 text-slate-500 transition-all";
+        }
+      });
+    }
+
+    function runLocalPipeline(textToProcess) {
+      updateProgressUI("cleaning");
+      setTimeout(() => {
+        updateProgressUI("splitting");
+        setTimeout(() => {
+          updateProgressUI("extracting");
+          setTimeout(() => {
+            updateProgressUI("summarizing");
+            setTimeout(() => {
+              
+              // Algorithmic local parser
+              const paragraphs = textToProcess.split(/(User:|Assistant:)/);
+              const customChunks = [];
+              let currentChunkText = "";
+              let currentTopicIndex = 1;
+              let turnCounter = 0;
+
+              for (let i = 0; i < paragraphs.length; i++) {
+                const segment = paragraphs[i];
+                if (!segment) continue;
+
+                if (segment === "User:" || segment === "Assistant:") {
+                  turnCounter++;
+                  currentChunkText += segment + " ";
+                } else {
+                  currentChunkText += segment.trim() + "\n\n";
+                  
+                  if (turnCounter >= 4 || segment.includes("GTSAM") || segment.includes("resume") || segment.includes("LangSmith")) {
+                    const words = currentChunkText.split(/\s+/).filter(Boolean);
+                    const firstWords = words.slice(2, 7).join(" ");
+                    
+                    let matchedCat = "Other";
+                    if (currentChunkText.toLowerCase().includes("git")) matchedCat = "Git / GitHub";
+                    else if (currentChunkText.toLowerCase().includes("rag") || currentChunkText.toLowerCase().includes("vector")) matchedCat = "RAG / Retrieval";
+                    else if (currentChunkText.toLowerCase().includes("langsmith")) matchedCat = "LangSmith";
+                    else if (currentChunkText.toLowerCase().includes("resume")) matchedCat = "Resume / Portfolio";
+                    else if (currentChunkText.toLowerCase().includes("ros2") || currentChunkText.toLowerCase().includes("gtsam")) matchedCat = "ROS2 / Robotics";
+
+                    customChunks.push({
+                      id: `chunk_local_${Date.now()}_${currentTopicIndex}`,
+                      title: `Cluster Node ${currentTopicIndex}: ${firstWords}...`,
+                      category: matchedCat,
+                      text: currentChunkText.trim(),
+                      keywords: words.slice(10, 15).map(w => w.replace(/[^a-zA-Z]/g, "").toLowerCase()).filter(w => w.length > 4),
+                      summary: `Algorithmic parent container grouping related text nodes concerning: ${matchedCat}.`,
+                      tokens: Math.round(words.length * 1.3),
+                      speakerTurns: Math.ceil(turnCounter / 2),
+                      redundancyScore: Math.floor(Math.random() * 15)
+                    });
+
+                    currentChunkText = "";
+                    turnCounter = 0;
+                    currentTopicIndex++;
+                  }
+                }
+              }
+
+              if (currentChunkText.trim()) {
+                const words = currentChunkText.split(/\s+/).filter(Boolean);
+                customChunks.push({
+                  id: `chunk_local_${Date.now()}_tail`,
+                  title: `Cluster Node ${currentTopicIndex}: Concluding discussion`,
+                  category: "Other",
+                  text: currentChunkText.trim(),
+                  keywords: ["residuals", "session", "cleanup"],
+                  summary: "Aggregated dialog segments covering final context exchanges.",
+                  tokens: Math.round(words.length * 1.3),
+                  speakerTurns: Math.ceil(turnCounter / 2),
+                  redundancyScore: Math.floor(Math.random() * 5)
+                });
+              }
+
+              state.chunks = customChunks;
+              state.selectedChunkId = customChunks[0]?.id || "";
+              state.isProcessing = false;
+              document.getElementById("pipeline-progress-cards").classList.add("hidden");
+              document.getElementById("start-pipeline-btn").disabled = false;
+              showToast(`Segmented ${customChunks.length} logical chunks locally!`);
+              switchTab("dashboard");
+
+            }, 800);
+          }, 800);
+        }, 800);
+      }, 800);
+    }
+
+    // ==========================================
+    // RAG SIMULATOR & PLAYGROUND TRIGGERS
+    // ==========================================
+    async function handleRagSubmit(e) {
+      e.preventDefault();
+      const query = document.getElementById("rag-query-input").value;
+      if (!query.trim()) return;
+
+      state.ragQuery = query;
+      state.isRAGLoading = true;
+      
+      const outputBox = document.getElementById("rag-output-container");
+      const answerTarget = document.getElementById("rag-answer-target");
+      const sourcesTarget = document.getElementById("rag-sources-target");
+      const identifier = document.getElementById("rag-engine-identifier");
+
+      outputBox.classList.remove("hidden");
+      answerTarget.innerHTML = `<span class="animate-pulse text-blue-400">Retrieving related context from indices and analyzing blocks...</span>`;
+      sourcesTarget.innerHTML = "";
+
+      if (state.customApiKey.trim()) {
+        identifier.textContent = "✨ Live Synthesis Model";
+      } else {
+        identifier.textContent = "⚙️ Local Fallback Module";
+      }
+
+      try {
+        // Matching indexes
+        const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+        const scored = state.chunks.map(chunk => {
+          let score = 0;
+          const fullText = (chunk.title + " " + chunk.category + " " + chunk.text + " " + chunk.summary).toLowerCase();
+          words.forEach(w => {
+            if (fullText.includes(w)) {
+              score += 10;
+              if (chunk.keywords.some(k => k.toLowerCase() === w)) score += 15;
+            }
+          });
+          return { chunk, score };
+        });
+
+        const matches = scored.filter(s => s.score > 0).sort((a,b) => b.score - a.score).slice(0,3).map(m => m.chunk);
+
+        if (matches.length === 0) {
+          answerTarget.innerHTML = `<span class="text-slate-500">No matching database logs found. Try different query tags.</span>`;
+          return;
+        }
+
+        matches.forEach((m, idx) => {
+          const div = document.createElement("div");
+          div.className = "bg-neutral-950 border border-slate-900 rounded-xl p-4 relative pl-5 overflow-hidden";
+          div.innerHTML = `
+            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+            <div class="flex justify-between mb-1">
+              <span class="text-[10px] text-blue-400 font-bold">[Source ${idx + 1}]</span>
+              <span class="text-[9px] text-slate-500">{m.category}</span>
+            </div>
+            <h5 class="text-xs font-bold text-white">${m.title}</h5>
+            <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">${m.summary}</p>
+          `;
+          sourcesTarget.appendChild(div);
+        });
+
+        // Synthesis response
+        const retrievedContent = matches.map((m, idx) => `[Source ${idx + 1}: ${m.title}]\n${m.text}`).join("\n\n---\n\n");
+
+        if (state.customApiKey.trim()) {
+          const prompt = `
+            Answer the query "${query}" based strictly on the retrieved dialogue records. Cite your sources as [Source 1], [Source 2], etc. Keep output concise.
+            
+            CONTEXT CLUSTERS:
+            ${retrievedContent}
+          `;
+          const answer = await callGeminiAPI(prompt, "You are an accurate RAG synthesizer who answers user queries relying solely on provided dialogue context.");
+          answerTarget.textContent = answer;
+        } else {
+          setTimeout(() => {
+            const bullets = matches.map((m, i) => `• Referring **[Source ${i+1}] - ${m.title}** (${m.category}): ${m.summary}`);
+            answerTarget.innerHTML = `
+              <p class="font-bold mb-2 text-blue-400">Locally Synthesized Context (Simulation)</p>
+              <p class="mb-4">Matched <strong>${matches.length} context nodes</strong> related to your question.</p>
+              <div class="space-y-2 mb-4">${bullets.join("")}</div>
+              <p class="text-slate-500 text-[11px] italic mt-4 border-t border-slate-900 pt-2">Provide a Gemini API Key in the header to enable live end-to-end LLM answer synthesis!</p>
+            `;
+          }, 1200);
+        }
+
+      } catch (err) {
+        answerTarget.textContent = "An error occurred compiling the RAG synthesis response.";
+      } finally {
+        state.isRAGLoading = false;
+      }
+    }
+
+    // ==========================================
+    // TELEMETRY & ANALYTICS VISUALIZATIONS
+    // ==========================================
+    function renderAnalyticsLayouts() {
+      // 1. Stacked Percentage Bar
+      const percentBar = document.getElementById("stacked-percent-bar");
+      percentBar.innerHTML = "";
+
+      const accum = state.chunks.reduce((acc, curr) => acc + curr.tokens, 0);
+      const breakdown = {};
+      state.chunks.forEach(c => {
+        breakdown[c.category] = (breakdown[c.category] || 0) + c.tokens;
+      });
+
+      Object.keys(breakdown).forEach(cat => {
+        const val = breakdown[cat];
+        const pct = (val / accum) * 100;
+        const colors = getCategoryColors(cat);
+
+        const subBar = document.createElement("div");
+        subBar.style.width = `${pct}%`;
+        subBar.className = `h-full border-r border-slate-950/40 relative group ${colors.bg.replace('/20', '/80')}`;
+        subBar.title = `${cat}: ${val} tokens (${Math.round(pct)}%)`;
+        percentBar.appendChild(subBar);
+      });
+
+      // 2. Metrics grid cards
+      const grid = document.getElementById("analytics-grid-breakdown");
+      grid.innerHTML = "";
+
+      Object.keys(breakdown).forEach(cat => {
+        const val = breakdown[cat];
+        const colors = getCategoryColors(cat);
+
+        const card = document.createElement("div");
+        card.className = "p-3 bg-black border border-slate-900 rounded-lg flex flex-col gap-1";
+        card.innerHTML = `
+          <span class="text-[10px] font-bold ${colors.text}">${cat}</span>
+          <span class="text-sm font-mono font-bold text-white">${val.toLocaleString()} <span class="text-[10px] font-normal text-slate-500">tokens</span></span>
+        `;
+        grid.appendChild(card);
+      });
+
+      // 3. Warnings lists
+      const warningList = document.getElementById("analytics-redundancy-targets");
+      warningList.innerHTML = "";
+
+      const redundant = state.chunks.filter(c => c.redundancyScore > 8);
+      if (redundant.length === 0) {
+        warningList.innerHTML = `
+          <div class="text-xs text-slate-500 text-center p-4">No critical redundancy flags matching standards.</div>
+        `;
+      } else {
+        redundant.forEach(chunk => {
+          const item = document.createElement("div");
+          item.className = "p-3 bg-black border border-slate-900 rounded-lg flex justify-between items-start text-xs gap-4";
+          item.innerHTML = `
+            <div>
+              <span class="font-semibold text-slate-300 block">${chunk.title}</span>
+              <span class="text-[11px] text-slate-500">Trigger: high occurrences of filler words</span>
+            </div>
+            <span class="text-blue-400 font-mono font-bold flex-shrink-0 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded text-[10px]">
+              ${chunk.redundancyScore}% Redundant
+            </span>
+          `;
+          warningList.appendChild(item);
+        });
+      }
+    }
+
+    const DEFAULT_CHUNKS = [
+      {
+        id: "chunk_001",
+        title: "Git Merge Conflict Resolution & Rebasing",
+        category: "Git / GitHub",
+        text: `User: Hey, I am struggling with Git today. I have a feature branch that is behind main, and when I try to merge, I get a conflict in package.json and index.js. How do I solve this cleanly without losing my commits?\n\nAssistant: No worries, let's solve this! Here is a step-by-step way to resolve Git conflicts using rebase, which keeps a cleaner history than merge.\nFirst, make sure your local main is up to date:\n\`\`\`bash\ngit checkout main\ngit pull origin main\n\`\`\`\nThen, checkout your feature branch and rebase:\n\`\`\`bash\ngit checkout feature-branch\ngit rebase main\n\`\`\`\nWhen it halts on conflict:\n1. Open your files and search for "<<<<<<<".\n2. Decide which changes to keep.\n3. For package.json, sometimes it's easier to manually edit, or use "git checkout --ours package.json" if you want to keep yours.\n4. After resolving, stage the files: \`git add index.js package.json\`\n5. Continue: \`git rebase --continue\`\nNever use \`git push --force\` unless you are the only one working on that branch!`,
+        keywords: ["conflict", "rebase", "git checkout", "package.json", "merge"],
+        summary: "Explains how to resolve file conflicts during a git rebase operation by pulling main, rebasing the feature branch, resolving conflict tags, and progressing step-by-step.",
+        tokens: 280,
+        speakerTurns: 2,
+        redundancyScore: 12
+      },
+      {
+        id: "chunk_002",
+        title: "Understanding LangChain RAG Architecture",
+        category: "RAG / Retrieval",
+        text: `User: Got it, that worked beautifully! Now, switching gears. I'm building a project with LangChain. I want to build a system that can search through my PDF documents. I heard about Vector Databases but I don't really know how they fit into the LangChain RAG pipeline. Can you explain the pipeline from document to answer?\n\nAssistant: Awesome! You are talking about Retrieval-Augmented Generation (RAG). Here is how LangChain structures it:\n1. **Document Loading**: Use a document loader (like PyPDFLoader) to read the PDF into text.\n2. **Text Splitting**: PDFs are too large for LLM context windows, so we chunk them. LangChain has \`RecursiveCharacterTextSplitter\` which splits by paragraphs and sentences.\n3. **Embedding**: We convert text chunks into high-dimensional vector representations using an Embedding Model (like OpenAI's \`text-embedding-3-small\`).\n4. **Vector Database**: We store these embeddings in a vector store (Pinecone, Chroma, FAISS). It indexes the vectors so we can perform fast similarity searches.\n5. **Retrieval**: When a user asks a question, we embed their question, query the vector DB to retrieve the top-K most similar text chunks.\n6. **Generation**: We stuff these retrieved chunks and the original question into a prompt and send it to the LLM to get a grounded answer.`,
+        keywords: ["RAG", "document loading", "text splitting", "embedding", "vector store"],
+        summary: "Breaks down the six core stages of Retrieval-Augmented Generation (RAG) in LangChain, outlining document ingestion, recursive text splitting, token embeddings, vector indexing, retrieval, and contextual generation.",
+        tokens: 350,
+        speakerTurns: 2,
+        redundancyScore: 8
+      },
+      {
+        id: "chunk_003",
+        title: "LangSmith Tracing & Observability Setup",
+        category: "LangSmith",
+        text: `User: That makes perfect sense. How do I track and debug these steps? I keep hearing that LLMs are black boxes, and sometimes my retrieval returns garbage but I don't know why. Is there a tool for that?\n\nAssistant: Yes, absolutely! That is exactly what LangSmith is for. It is an observability and tracing platform built by the same creators of LangChain.\nWith LangSmith, you can visualize the exact run tree of your chain. It shows:\n- The exact prompt sent to the LLM.\n- The precise chunks retrieved from the Vector DB.\n- Token usage and latencies of each individual step.\n- Nested calls (e.g., if your agent calls a tool, which then calls an API).\nTo enable it, you just set these environment variables before running your python code:\n\`\`\`python\nimport os\nos.environ["LANGCHAIN_TRACING_V2"] = "true"\nos.environ["LANGCHAIN_API_KEY"] = "your-api-key"\nos.environ["LANGCHAIN_PROJECT"] = "my-rag-project"\n\`\`\``,
+        keywords: ["LangSmith", "observability", "tracing", "run tree", "debugging"],
+        summary: "Introduces LangSmith for tracing AI applications, highlighting its ability to map nested API calls, token counts, model latency, and prompt contexts to debug performance bottlenecks.",
+        tokens: 290,
+        speakerTurns: 2,
+        redundancyScore: 5
+      },
+      {
+        id: "chunk_004",
+        title: "LangSmith Offline Evaluations & Experiments",
+        category: "LangSmith",
+        text: `User: Perfect. Can I use LangSmith for offline evaluations too? I want to test if changing my chunk size from 500 to 1000 tokens makes the answers better or worse.\n\nAssistant: Yes! LangSmith shines at offline evaluations. \nHere is how you do it:\n1. **Create a Dataset**: Upload a set of 50-100 golden question-and-answer pairs to LangSmith.\n2. **Define an Evaluator**: You can write heuristics (like regex checking) or use "LLM-as-a-judge" evaluators. Common criteria are correctness, faithfulness (does it hallucinate?), and answer relevance.\n3. **Run Experiments**: Run your pipeline with chunk size 500 over the dataset and upload the runs. Then run it with chunk size 1000 and upload those runs.\n4. **Compare**: LangSmith gives you a side-by-side dashboard comparing accuracy, latency, and token cost. This turns prompt engineering from "vibes" into empirical science!`,
+        keywords: ["offline evaluation", "dataset", "evaluator", "hallucination", "experiments"],
+        summary: "Outlines how to conduct empirical AI pipeline experiment evaluations in LangSmith using golden datasets, LLM judges for factual alignment, and cross-configuration performance matrix metrics.",
+        tokens: 270,
+        speakerTurns: 2,
+        redundancyScore: 10
+      },
+      {
+        id: "chunk_005",
+        title: "AI System Resume Positioning & Bullet Points",
+        category: "Resume / Portfolio",
+        text: `User: Great. I also need to update my resume with these projects. How should I word my AI and LangChain experience? I want it to sound highly technical, not just like I followed a basic tutorial.\n\nAssistant: To stand out on your resume, emphasize system design, tradeoffs, and quantitative results rather than just listing APIs.\nHere are two high-impact bullet points:\n- "Designed and implemented an enterprise-grade RAG pipeline using LangChain and Chroma, optimizing document retrieval by transitioning from naive character splitting to semantic chunking, reducing hallucination rates by 34%."\n- "Established rigorous evaluation loops using LangSmith, evaluating 5 different model-and-prompt configurations over a golden evaluation set of 120 queries, optimizing context utility and reducing average token cost by 22%."\nAvoid saying "Used ChatGPT to write code." Instead, use phrases like "Orchestrated complex LLM workflows," "Engineered robust semantic index structures," or "Designed multi-agent routing architecture."`,
+        keywords: ["resume", "bullet points", "RAG pipeline", "system design", "portfolio"],
+        summary: "Provides actionable, high-impact resume phrasing strategies that transition simple AI projects into system-level architectures with metric-driven accomplishments.",
+        tokens: 260,
+        speakerTurns: 2,
+        redundancyScore: 15
+      },
+      {
+        id: "chunk_006",
+        title: "ROS2 & GTSAM Factor Graph Architecture",
+        category: "ROS2 / Robotics",
+        text: `User: Understood. I am also working with ROS2 and an Autonomous Underwater Vehicle (AUV) for my thesis. I need to implement GTSAM (Georgia Tech Smoothing and Mapping) for factor graph optimization. Do you know how to structure a ROS2 node that receives IMU and sonar data and updates GTSAM?\n\nAssistant: Yes, designing state estimation filters for underwater vehicles using GTSAM in ROS2 is a solid academic project!\nYour ROS2 node should follow this architecture:\n1. **Subscriptions**: Subscribe to \`/imu/data\` (high frequency, ~100Hz) and \`/sonar/pose\` or \`/depth\` (low frequency, ~10Hz).\n2. **GTSAM Graph Initialization**: Create a \`gtsam::NonlinearFactorGraph\` and a \`gtsam::Values\` object to hold estimate states. Add a prior factor on the starting pose.\n3. **IMU Preintegration**: Use \`gtsam::PreintegratedImuMeasurements\`. Accumulate IMU measurements between sonar updates. When a new IMU packet arrives, integrate it.\n4. **Graph Updates**: When a sonar measurement is received:\n   - Create a new state variable node in the graph.\n   - Insert an \`ImuFactor\` representing the relative motion since the last state.\n   - Insert a GPS/depth/sonar factor tied to the new state.\n   - Run \`gtsam::ISAM2\` or \`gtsam::LevenbergMarquardtOptimizer\` to solve the graph.\n   - Publish the optimized state to \`/odom/optimized\`.\nMake sure to handle bias estimation in your IMU preintegration parameters to prevent drift during longer dives!`,
+        keywords: ["ROS2", "GTSAM", "factor graph", "IMU preintegration", "state estimation"],
+        summary: "Specifies a robotic architecture for state estimation on an AUV, leveraging high-frequency IMU measurements integrated with factor graphs via GTSAM and ROS2 topics to stabilize localization drift.",
+        tokens: 380,
+        speakerTurns: 2,
+        redundancyScore: 3
+      }
+    ];
+
+    window.onload = function () {
+      state.chunks = [...DEFAULT_CHUNKS];
+      state.selectedChunkId = DEFAULT_CHUNKS[0]?.id || "";
+      renderExplorerLayouts();
+    }
+  </script>
+</body>
+</html>
