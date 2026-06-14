@@ -1,4 +1,7 @@
 services:
+  # ---------------------------------------------------------------------------
+  # Frontend: the built Vite static site.
+  # ---------------------------------------------------------------------------
   - type: web
     name: chat-mapper
     runtime: static
@@ -9,6 +12,13 @@ services:
       # Vite 8 needs Node >= 20.19 or >= 22.12.
       - key: NODE_VERSION
         value: "22.12.0"
+      # Point the frontend at the backend proxy below. Render injects the
+      # proxy's hostname at build time; the app prefixes https:// itself.
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: chat-mapper-proxy
+          property: host
     routes:
       # Single-page app: serve index.html for any unknown path.
       - type: rewrite
@@ -18,3 +28,18 @@ services:
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
+
+  # ---------------------------------------------------------------------------
+  # Backend: tiny share-link fetch proxy (Node, zero deps). Lives in /server.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: chat-mapper-proxy
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22.12.0"

@@ -1,0 +1,13 @@
+{
+  "name": "chat-mapper-proxy",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Share-link fetch proxy for Chat Mapper (zero dependencies).",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

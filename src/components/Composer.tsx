@@ -128,12 +128,25 @@ export function Composer({
             />
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            Works with public <strong className="font-medium text-slate-600">ChatGPT</strong>,{" "}
+            Best-effort for <strong className="font-medium text-slate-600">ChatGPT</strong>,{" "}
             <strong className="font-medium text-slate-600">Claude</strong>, and{" "}
-            <strong className="font-medium text-slate-600">Gemini</strong> share links.
-            Everything runs in your browser — we don&apos;t store your chat history.
+            <strong className="font-medium text-slate-600">Gemini</strong> share links — many are
+            protected and can&apos;t be read automatically. If it fails, use{" "}
+            <strong className="font-medium text-slate-600">Paste Chat</strong> (always works).
+            Nothing is stored.
           </p>
-          {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+          {error && (
+            <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={() => onModeChange("paste")}
+                className="mt-1.5 font-semibold text-red-700 underline underline-offset-2 hover:text-red-800"
+              >
+                Switch to Paste Chat →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
