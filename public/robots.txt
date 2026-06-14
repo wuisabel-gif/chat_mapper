@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Replace YOUR-USERNAME below with your real GitHub Pages URL.
+Sitemap: https://YOUR-USERNAME.github.io/chat-mapper/sitemap.xml

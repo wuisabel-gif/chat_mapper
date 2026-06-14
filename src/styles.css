@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* Custom UI font — ALK Life. Loaded through Vite's asset pipeline so the URL
+   is hashed and resolves correctly under any deploy base path. */
+@font-face {
+  font-family: "ALK Life";
+  src: url("./assets/fonts/alk-life-webfont.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Custom theme tokens (Tailwind v4 @theme) ------------------------------- */
+/* Light theme — "brand-black" is now the light page background / input wells,
+   "brand-card" is white so panels sit above it, borders are a soft light gray. */
+@theme {
+  --color-brand-black: #eef2f7;
+  --color-brand-dark: #e2e8f0;
+  --color-brand-card: #ffffff;
+  --color-brand-border: #d7dfea;
+  --color-brand-blue: #3b82f6;
+  --color-brand-bright: #1d4ed8;
+  --color-brand-glow: #1d4ed8;
+
+  --font-sans: "ALK Life", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "ALK Life", "Inter", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* Global base ----------------------------------------------------------- */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-brand-black);
+  color: #1e293b;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Slim scrollbars to match the dashboard aesthetic --------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-brand-black);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-glow);
+}
+
+.code-font {
+  font-family: var(--font-mono);
+}
+
+/* Display family reserved for the wordmark only. */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Headings read better with balanced wrapping. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Ambient hero graph: slow, subtle drift. Disabled for reduced motion. */
+@keyframes graph-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
